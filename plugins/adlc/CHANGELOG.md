@@ -1,3 +1,9 @@
+## [0.2.0](https://github.com/integranz/adlc/compare/v0.1.0...v0.2.0) (2026-09-09)
+
+### Features
+
+* **scaffold:** option-driven scaffold engine, repo-side templates and config validators ([64b29f1](https://github.com/integranz/adlc/commit/64b29f18d7cf446a7e35d3ad86b213959add51e6))
+
 ## [0.1.0](https://github.com/integranz/adlc/compare/v0.0.0...v0.1.0) (2026-09-09)
 
 ### Features
