@@ -1,0 +1,69 @@
+# .adlc/config.yaml — written by /adlc:bootstrap, read by every other adlc skill.
+# Values below are the adlc-demo defaults; replace identifiers with your own.
+schema_version: 1
+
+project:
+  name: adlc-demo
+  description: Demo monorepo (.NET 8 API + React/Vite frontend) delivered by the adlc plugin
+
+options:
+  cloud: azure
+  compute: aca
+  registry: acr
+  runner: github-actions
+  versioning: nbgv
+  branching: trunk
+  tracker: jira
+  secret_store: azure-key-vault
+  base_image: dhi
+
+azure:
+  subscription_id: 00000000-0000-0000-0000-000000000000
+  tenant_id: 00000000-0000-0000-0000-000000000000
+  location: westeurope
+  resource_group: rg-adlc-demo-dev
+  acr_name: acradlcdemo
+  key_vault_name: kv-adlc-demo-dev
+  identity_name: id-adlc-demo-dev
+  state:
+    resource_group: rg-adlc-tfstate
+    storage_account: stadlctfstate
+    container: tfstate
+
+github:
+  owner: your-org
+  repo: adlc-demo
+  default_branch: main
+  cd_environment: dev
+
+jira:
+  site_url: https://integranz.atlassian.net
+  project_key: ADLC
+  issue_type: Story
+  transitions:
+    start: In Progress
+    review: In Review
+    done: Done
+
+environments: [dev]
+
+apps:
+  - name: api
+    path: apps/api
+    kind: api
+    stack: dotnet8-api
+    port: 8080
+    health_path: /health
+    test_command: dotnet test apps/api
+    image_repository: adlc-demo/api
+  - name: web
+    path: apps/web
+    kind: frontend
+    stack: react-vite
+    port: 8080
+    health_path: /
+    test_command: npm --prefix apps/web test
+    image_repository: adlc-demo/web
+    upstreams: [api]
+
+cursor_mirror: false

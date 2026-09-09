@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+*.log
+# never commit these (hooks also block them)
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+tfplan*
+.env
+.env.*
+.terraform/

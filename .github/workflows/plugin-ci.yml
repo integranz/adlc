@@ -1,0 +1,30 @@
+name: plugin-ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate config example against schema
+        run: npm run validate:config-example
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate plugin and marketplace manifests
+        run: npm run validate:plugin
+      - name: Shell syntax
+        run: |
+          shopt -s nullglob
+          for f in scripts/**/*.sh plugins/adlc/hooks/*.sh plugins/adlc/scripts/*.sh; do bash -n "$f"; done
+      - name: Hook tests
+        run: |
+          if [ -x plugins/adlc/hooks/test-hooks.sh ]; then plugins/adlc/hooks/test-hooks.sh; else echo "no hook tests yet"; fi
