@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "atlassian": {
+      "type": "http",
+      "url": "https://mcp.atlassian.com/v2/mcp"
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/x/actions"
+    },
+    "azure": {
+      "command": "npx",
+      "args": [
+        "-y", "@azure/mcp@latest", "server", "start",
+        "--namespace", "acr",
+        "--namespace", "containerapps",
+        "--namespace", "keyvault",
+        "--namespace", "group",
+        "--namespace", "role",
+        "--namespace", "subscription",
+        "--namespace", "monitor",
+        "--read-only"
+      ]
+    }
+  }
+}
