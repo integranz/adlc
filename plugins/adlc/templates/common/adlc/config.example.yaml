@@ -18,8 +18,8 @@ options:
   base_image: dhi
 
 azure:
-  subscription_id: 00000000-0000-0000-0000-000000000000
-  tenant_id: 00000000-0000-0000-0000-000000000000
+  # subscription_id / tenant_id are optional: omit them and set ARM_SUBSCRIPTION_ID / ARM_TENANT_ID
+  # (locally via `az account set`, in CI via GitHub secrets AZURE_SUBSCRIPTION_ID / AZURE_TENANT_ID).
   location: westeurope
   resource_group: rg-adlc-demo-dev
   acr_name: acradlcdemo
@@ -31,7 +31,7 @@ azure:
     container: tfstate
 
 github:
-  owner: your-org
+  owner: integranz
   repo: adlc-demo
   default_branch: main
   cd_environment: dev

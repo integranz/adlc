@@ -6,7 +6,7 @@ Status: **skeleton (day 1 of 16)**. Skills, agents and hooks are stubs; see the 
 
 ## Install
 ```
-/plugin marketplace add <github-owner>/adlc
+/plugin marketplace add integranz/adlc
 /plugin install adlc@adlc-marketplace
 ```
 Local development: `claude --plugin-dir ./plugins/adlc`.

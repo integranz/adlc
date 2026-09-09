@@ -8,7 +8,7 @@ Source and marketplace for the **adlc** (Agentic Delivery Lifecycle) Claude Code
 
 ## Use the marketplace
 ```
-/plugin marketplace add <github-owner>/adlc
+/plugin marketplace add integranz/adlc
 /plugin install adlc@adlc-marketplace
 ```
 

@@ -116,8 +116,6 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "subscription_id",
-        "tenant_id",
         "location",
         "resource_group",
         "acr_name",
@@ -127,11 +125,13 @@
       "properties": {
         "subscription_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "Optional. When omitted, tooling reads ARM_SUBSCRIPTION_ID / AZURE_SUBSCRIPTION_ID (locally from az account, in CI from GitHub secrets). Keep identifiers out of committed config when the repo is public."
         },
         "tenant_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "Optional. When omitted, tooling reads ARM_TENANT_ID / AZURE_TENANT_ID."
         },
         "location": {
           "type": "string"

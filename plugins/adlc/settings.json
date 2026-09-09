@@ -1,5 +1,0 @@
-{
-  "env": {
-    "ADLC_CONFIG": ".adlc/config.yaml"
-  }
-}
