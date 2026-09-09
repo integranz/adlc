@@ -17,6 +17,9 @@ Source and marketplace for the **adlc** (Agentic Delivery Lifecycle) Claude Code
 npm ci
 npm run validate:config-example
 npm run validate:plugin        # needs the claude CLI
+npm test                       # renderer + scaffold integration + 72 hook cases
+node plugins/adlc/scripts/options.cjs            # what the interview offers
+node plugins/adlc/scripts/scaffold.cjs --repo <target> --dry-run
 claude --plugin-dir ./plugins/adlc
 ```
 Releases: semantic-release on `main` from Conventional Commits; `plugins/adlc/.claude-plugin/plugin.json` and `plugins/adlc/CHANGELOG.md` are updated automatically.

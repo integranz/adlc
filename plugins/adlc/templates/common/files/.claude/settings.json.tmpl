@@ -1,0 +1,21 @@
+{
+  "extraKnownMarketplaces": {
+    "<% derived.marketplace.name %>": {
+      "source": { "source": "github", "repo": "<% derived.marketplace.repo %>" }
+    }
+  },
+  "enabledPlugins": {
+    "<% derived.marketplace.plugin %>@<% derived.marketplace.name %>": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git branch:*)",
+      "Bash(terraform fmt:*)", "Bash(terraform validate:*)", "Bash(terraform init:*)", "Bash(terraform plan:*)", "Bash(terraform show:*)", "Bash(terraform output:*)",
+      "Bash(docker build:*)", "Bash(docker run:*)", "Bash(docker ps:*)", "Bash(docker logs:*)", "Bash(docker manifest inspect:*)",
+      "Bash(az account show:*)", "Bash(az acr repository:*)", "Bash(az containerapp show:*)", "Bash(az containerapp revision:*)", "Bash(az containerapp list:*)",
+      "Bash(gh run list:*)", "Bash(gh run view:*)", "Bash(gh workflow view:*)", "Bash(gh release view:*)",
+      "Bash(dotnet build:*)", "Bash(dotnet test:*)", "Bash(dotnet --list-sdks)", "Bash(npm test:*)", "Bash(npm run build:*)", "Bash(npm ci)",
+      "Bash(curl -fsS:*)", "Bash(nbgv get-version:*)"
+    ]
+  }
+}

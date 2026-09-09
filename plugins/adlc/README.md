@@ -2,7 +2,7 @@
 
 Takes a repository from "code in a repo" to "versioned image running in the cloud, verified, and tracked in a ticket", driven by skills, three role sub-agents and mechanical guardrail hooks.
 
-Status: **skeleton (day 1 of 16)**. Skills, agents and hooks are stubs; see the schedule in the `adlc-poc` docs.
+Status: **day 3 of 16**. Guard hooks, role sub-agents, MCP servers, option registry, config schema and the scaffold engine are in place; skills are still stubs.
 
 ## Install
 ```
@@ -27,6 +27,14 @@ Local development: `claude --plugin-dir ./plugins/adlc`.
 
 ## Data handling
 The plugin reads `.adlc/config.yaml` and repository files. It sends nothing anywhere except through the MCP servers you enable (tracker, GitHub, Azure read-only) and the CLIs you already authenticate (`az`, `gh`, `terraform`, `docker`). Secrets are never written to the repo; hooks block it.
+
+## Scripts
+| Script | Purpose |
+|---|---|
+| `scripts/scaffold.cjs --repo <dir> [--dry-run] [--force]` | Render templates into a target repo from `.adlc/config.yaml`; refuses planned/later options; never writes a partial scaffold |
+| `scripts/validate-config.cjs [config]` | Schema + option-status + cross-dimension validation |
+| `scripts/options.cjs [dimension] [--json]` | Option registry for the intake interview |
+| `scripts/approve-apply.sh <planfile>` | Human-only, one-shot, 10-minute approval for one `terraform apply` |
 
 ## Option matrix
 See `templates/common/adlc/options.yaml`: `implemented` options are selectable and exercised end to end; `planned` options are shown but not selectable; `later` is roadmap.

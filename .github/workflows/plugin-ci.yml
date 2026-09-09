@@ -30,6 +30,7 @@ jobs:
           tmp="$(mktemp)"; cp plugins/adlc/.claude-plugin/plugin.json "$tmp"
           PLUGIN_MANIFEST="$tmp" bash scripts/release/set-plugin-version.sh 9.9.9
           grep -q '"version": "9.9.9"' "$tmp"
+      - name: Unit and integration tests (renderer, scaffold)
+        run: npm run test:unit
       - name: Hook tests
-        run: |
-          if [ -x plugins/adlc/hooks/test-hooks.sh ]; then plugins/adlc/hooks/test-hooks.sh; else echo "no hook tests yet"; fi
+        run: npm run test:hooks

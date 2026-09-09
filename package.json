@@ -4,6 +4,10 @@
   "private": true,
   "description": "Marketplace and source for the adlc Claude Code plugin. Versioned with semantic-release (Conventional Commits).",
   "scripts": {
+    "test": "npm run -s test:unit && npm run -s test:hooks",
+    "test:unit": "node --test plugins/adlc/scripts/lib/render.test.cjs plugins/adlc/scripts/scaffold.test.cjs",
+    "test:hooks": "bash plugins/adlc/hooks/test-hooks.sh",
+    "build:validator": "node scripts/build-validator.cjs",
     "validate:config-example": "node scripts/validate-config-example.mjs",
     "validate:plugin": "claude plugin validate ./plugins/adlc --strict && claude plugin validate . --strict",
     "release": "semantic-release"

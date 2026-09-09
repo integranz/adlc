@@ -9,6 +9,12 @@
 # It must never silently fall back to another option or write a partial scaffold.
 schema_version: 1
 
+# Where the plugin is distributed from (rendered into target repos' .claude/settings.json)
+distribution:
+  marketplace: adlc-marketplace
+  repo: integranz/adlc
+  plugin: adlc
+
 dimensions:
   cloud:
     question: Which cloud hosts the workloads?

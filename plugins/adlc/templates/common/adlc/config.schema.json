@@ -13,7 +13,10 @@
   ],
   "properties": {
     "schema_version": {
-      "const": 1
+      "type": "integer",
+      "enum": [
+        1
+      ]
     },
     "project": {
       "type": "object",
@@ -125,13 +128,13 @@
       "properties": {
         "subscription_id": {
           "type": "string",
-          "format": "uuid",
-          "description": "Optional. When omitted, tooling reads ARM_SUBSCRIPTION_ID / AZURE_SUBSCRIPTION_ID (locally from az account, in CI from GitHub secrets). Keep identifiers out of committed config when the repo is public."
+          "description": "Optional. When omitted, tooling reads ARM_SUBSCRIPTION_ID / AZURE_SUBSCRIPTION_ID (locally from az account, in CI from GitHub secrets). Keep identifiers out of committed config when the repo is public.",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
         },
         "tenant_id": {
           "type": "string",
-          "format": "uuid",
-          "description": "Optional. When omitted, tooling reads ARM_TENANT_ID / AZURE_TENANT_ID."
+          "description": "Optional. When omitted, tooling reads ARM_TENANT_ID / AZURE_TENANT_ID.",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
         },
         "location": {
           "type": "string"
@@ -206,7 +209,7 @@
       "properties": {
         "site_url": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^https://[a-z0-9-]+\\.atlassian\\.net/?$"
         },
         "project_key": {
           "type": "string",
@@ -239,7 +242,6 @@
     "environments": {
       "type": "array",
       "minItems": 1,
-      "uniqueItems": true,
       "items": {
         "type": "string",
         "pattern": "^[a-z][a-z0-9-]{1,15}$"

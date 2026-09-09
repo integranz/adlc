@@ -1,0 +1,12 @@
+---
+paths:
+  - ".github/workflows/**"
+---
+# Pipeline rules (<% derived.option_labels.runner %>)
+
+- CI and CD are separate workflows. CI builds, tests, computes the version with <% derived.option_labels.versioning %>, pushes `<% derived.registry_host %>/<app>:<semver>` and publishes a release manifest. CD (`workflow_dispatch` with `tag` and `environment` inputs) deploys exactly that tag.
+- Cloud authentication is OIDC federated credentials (`azure/login` with `id-token: write`); no client secrets in repository secrets.
+- CD applies `infra/app` behind the GitHub Environment approval; no other job runs `terraform apply`.
+- `workflow_run` is not used to pass a tag between workflows (it cannot carry inputs); `/adlc:deploy` triggers CD explicitly.
+- Every pushed tag is immutable and traceable to a commit (`sha-<short>` alias allowed alongside the semver).
+- Registry pulls for hardened base images use a Docker Hub token from repository secrets (`docker login dhi.io`), never inline credentials.
