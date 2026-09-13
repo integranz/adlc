@@ -1,3 +1,9 @@
+## [0.4.0](https://github.com/integranz/adlc/compare/v0.3.0...v0.4.0) (2026-09-13)
+
+### Features
+
+* **templates:** .adlc/SETUP.md prerequisites checklist and identity-and-secrets reference ([d579c29](https://github.com/integranz/adlc/commit/d579c290131195400b7b2711a417bad8aeeaaed4))
+
 ## [0.3.0](https://github.com/integranz/adlc/compare/v0.2.0...v0.3.0) (2026-09-13)
 
 ### Features
