@@ -48,6 +48,11 @@ SUB_ROLES=$(az role assignment list --assignee "$ME_ID" --all --include-inherite
 if echo "$SUB_ROLES" | grep -Eq 'Owner|User Access Administrator'; then ok "can assign roles at subscription scope (roles: $SUB_ROLES)"
 else echo "  WARN  no Owner/User Access Administrator on the subscription (roles: ${SUB_ROLES:-none}); role assignments in step 5 will fail unless you hold those roles on the target resource groups." >&2; fi
 if echo "$SUB_ROLES" | grep -Eq 'Owner|Contributor'; then ok "can create resource groups"; else echo "  FAIL  need Contributor or Owner on the subscription to create resource groups" >&2; PRE_FAIL=1; fi
+FORBIDDEN_ROLE_IDS=$(az role assignment list --assignee "$ME_ID" --all --include-inherited --query "[?condition!=null && (roleDefinitionName=='User Access Administrator' || roleDefinitionName=='Owner')].condition" -o tsv 2>/dev/null | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | sort -u | tr '\n' ' ' || true)
+if [ -n "$FORBIDDEN_ROLE_IDS" ]; then
+  FORBIDDEN_ROLE_NAMES=""; for g in $FORBIDDEN_ROLE_IDS; do FORBIDDEN_ROLE_NAMES="$FORBIDDEN_ROLE_NAMES$(az role definition list --name "$g" --query "[0].roleName" -o tsv 2>/dev/null), "; done
+  ok "your role-assignment rights carry an ABAC condition: you cannot assign ${FORBIDDEN_ROLE_NAMES%, }. This script assigns only Contributor and Storage Blob Data Contributor, which are allowed."
+fi
 [ "${PRE_FAIL:-0}" = 0 ] || { echo "preflight failed; nothing changed" >&2; exit 1; }
 $APPLY || say "Dry run (add --apply to execute). Commands that would run:"
 
@@ -87,15 +92,26 @@ RG_SCOPE="/subscriptions/$SUB_ID/resourceGroups/$RG"
 
 # ---- 5. role assignments ----
 say "5. Role assignments (least privilege)"
-assign() { # principal-object-id principal-type role scope label
-  local pid="$1" ptype="$2" role="$3" scope="$4" label="$5"
-  if [ -n "$pid" ] && [ "$(az role assignment list --assignee "$pid" --scope "$scope" --query "[?roleDefinitionName=='$role'] | length(@)" -o tsv 2>/dev/null)" != "0" ] && [ -n "$(az role assignment list --assignee "$pid" --scope "$scope" --query "[?roleDefinitionName=='$role'] | length(@)" -o tsv 2>/dev/null)" ]; then ok "$label: $role"; return; fi
+has_role() { # principal-object-id role scope -> 0 if the principal holds the role at this scope or inherits it from above
+  [ -n "$1" ] && [ "$(az role assignment list --assignee "$1" --scope "$3" --include-inherited --query "[?roleDefinitionName=='$2'] | length(@)" -o tsv 2>/dev/null || echo 0)" != "0" ]
+}
+assign() { # principal-object-id principal-type role scope label [soft]
+  local pid="$1" ptype="$2" role="$3" scope="$4" label="$5" soft="${6:-}"
+  if has_role "$pid" "$role" "$scope"; then ok "$label: $role (held or inherited)"; return 0; fi
   todo "$label: $role on ${scope#/subscriptions/$SUB_ID/}"
+  if [ -n "$soft" ] && $APPLY; then
+    az role assignment create --assignee-object-id "${pid}" --assignee-principal-type "$ptype" --role "$role" --scope "$scope" -o none 2>/tmp/adlc-assign.err \
+      || echo "  WARN  could not assign $role to $label ($(grep -oE '\([A-Za-z]+\)' /tmp/adlc-assign.err | head -1)); continuing because this role is for you, not for CI/CD. Grant it another way if a later step needs it." >&2
+    return 0
+  fi
   run az role assignment create --assignee-object-id "${pid:-<sp-object-id>}" --assignee-principal-type "$ptype" --role "$role" --scope "$scope" -o none
 }
-# the human: create the state container, apply infra/foundation (creates role assignments), set Key Vault values
-assign "$ME_ID" User "Storage Blob Data Contributor" "$SA_SCOPE" "you"
-assign "$ME_ID" User "User Access Administrator"     "$RG_SCOPE" "you"
+# the human: create the state container, apply infra/foundation (which creates non-privileged role assignments), set Key Vault values.
+# Privileged roles (Owner / User Access Administrator) are never assigned by this script: if you hold one at subscription
+# scope it is inherited; if not, ask a subscription Owner. Your own assignments are soft: a failure warns and continues.
+assign "$ME_ID" User "Storage Blob Data Contributor" "$SA_SCOPE" "you" soft
+if has_role "$ME_ID" "User Access Administrator" "$RG_SCOPE" || has_role "$ME_ID" "Owner" "$RG_SCOPE"; then ok "you: can create role assignments in $RG (inherited)"
+else echo "  WARN  you hold neither Owner nor User Access Administrator over $RG; infra/foundation (UAMI -> AcrPull, Key Vault Secrets User) will need a subscription Owner to grant you one of them." >&2; fi
 # the CI/CD principal
 assign "${SP_ID:-}" ServicePrincipal "Contributor"                   "$RG_SCOPE"        "sp"
 assign "${SP_ID:-}" ServicePrincipal "Storage Blob Data Contributor" "$CONTAINER_SCOPE" "sp"
