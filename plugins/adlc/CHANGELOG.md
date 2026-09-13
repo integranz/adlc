@@ -1,3 +1,9 @@
+## [0.4.1](https://github.com/integranz/adlc/compare/v0.4.0...v0.4.1) (2026-09-13)
+
+### Bug Fixes
+
+* **scaffold:** always merge .gitignore (even with --force) and check the <% delimiter in tests ([1580951](https://github.com/integranz/adlc/commit/1580951418531f9441f2cf4e15f4dab4db1b01c7))
+
 ## [0.4.0](https://github.com/integranz/adlc/compare/v0.3.0...v0.4.0) (2026-09-13)
 
 ### Features
