@@ -30,7 +30,7 @@ test("scaffold renders the common set for the example config", () => {
   assert.match(agents, /\| `web` \| `apps\/web` \| frontend \| react-vite \| 8080 \| `\/` \|/);
   assert.match(agents, /\| compute \| `aca` — Azure Container Apps \|/);
   assert.match(agents, /acradlcdemo\.azurecr\.io/);
-  assert.doesNotMatch(agents, /\{\{/, "unrendered placeholder left in AGENTS.md");
+  assert.doesNotMatch(agents, /<%/, "unrendered placeholder left in AGENTS.md");
   assert.match(read(repo, "CLAUDE.md"), /^@AGENTS\.md/);
   const settings = JSON.parse(read(repo, ".claude/settings.json"));
   assert.deepEqual(settings.extraKnownMarketplaces["adlc-marketplace"].source, { source: "github", repo: "integranz/adlc" });
@@ -39,7 +39,7 @@ test("scaffold renders the common set for the example config", () => {
     const txt = read(repo, `.claude/rules/${rule}.md`);
     const fm = txt.match(/^---\n([\s\S]*?)\n---\n/); assert.ok(fm, `${rule}.md has no frontmatter`);
     assert.ok(Array.isArray(yaml.load(fm[1]).paths), `${rule}.md paths: is not a list`);
-    assert.doesNotMatch(txt, /\{\{/, `unrendered placeholder in ${rule}.md`);
+    assert.doesNotMatch(txt, /<%/, `unrendered placeholder in ${rule}.md`);
   }
   assert.match(read(repo, ".claude/rules/versioning.md"), /version\.json.*single version source/);
   assert.doesNotMatch(read(repo, ".claude/rules/versioning.md"), /Conventional Commits/);
@@ -66,6 +66,8 @@ test("re-run skips existing files; --force replaces; .gitignore merges", () => {
   fs.writeFileSync(path.join(repo, "AGENTS.md"), "stale");
   r = run(["--repo", repo, "--force"], repo); assert.equal(r.status, 0);
   assert.match(r.stdout, /replace AGENTS\.md/); assert.match(read(repo, "AGENTS.md"), /start here \(adlc-demo\)/);
+  assert.match(read(repo, ".gitignore"), /custom-thing\//, "--force must not drop the repo's own .gitignore rules");
+  assert.match(r.stdout, /ok\s+\.gitignore \(already complete\)/);
 });
 
 test("--dry-run writes nothing", () => {

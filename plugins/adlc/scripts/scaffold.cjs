@@ -59,7 +59,7 @@ const summary = { written: 0, skipped: 0, merged: 0 };
 for (const item of rendered) {
   const { relDest, content } = item;
   const exists = fs.existsSync(item.dest);
-  if (exists && path.basename(item.dest) === ".gitignore" && !force) {
+  if (exists && path.basename(item.dest) === ".gitignore") { // always merge, even with --force: never drop a repo's own ignore rules
     const have = new Set(fs.readFileSync(item.dest, "utf8").split("\n").map(l => l.trim()));
     const add = content.split("\n").filter(l => l.trim() && !l.startsWith("#") && !have.has(l.trim()));
     if (add.length) { if (!dry) fs.appendFileSync(item.dest, `\n# added by adlc\n${add.join("\n")}\n`); console.log(`  merge   ${relDest} (+${add.length} lines)`); summary.merged++; }
