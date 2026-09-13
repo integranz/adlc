@@ -1,3 +1,24 @@
-# MCP-INTEGRATION
+# MCP integration (goal 5)
 
-Status: not started (scheduled in week 3, see adlc-poc/docs/04-schedule-prereqs-risks.md).
+Status: in progress. Servers are declared in `plugins/adlc/.mcp.json`; the golden-path task (`/adlc:ticket create → done` on `integranz.atlassian.net`, project `DEVOPS`) is scheduled for day 8.
+
+| Server | Transport | Auth | Used by | Write operations |
+|---|---|---|---|---|
+| `atlassian` | HTTP `https://mcp.atlassian.com/v2/mcp` | OAuth 2.1 (`/mcp login` in an interactive session; per user) | `/adlc:ticket` (parent session only) | create/edit/transition/comment on issues; `delete`/`manage` groups stay disabled |
+| `github` | HTTP `https://api.githubcopilot.com/mcp/x/actions` (actions toolset) | OAuth (per user) | `/adlc:deploy` (`actions_run_trigger`), `/adlc:verify` and `explore` (`actions_get`, `get_job_logs`) | `run_workflow`, `rerun`, `cancel` — allowed only for the parent; the immutable-tag hook checks `inputs.tag` |
+| `azure` | stdio `npx -y @azure/mcp@latest server start --namespace acr … --read-only` | `DefaultAzureCredential` (`az login`) | `verify`, `explore` | none (`--read-only`); infra mutations go through Terraform under the guard hooks |
+
+## Who may do what
+- `explore` and `verify` sub-agents: read tools only. Enforced by `guard-readonly-agents.sh` (blocks MCP tool names implying writes when `agent_type` is explore/verify).
+- `execute`: no MCP use expected (local changes only).
+- Parent session: writes via the skills that own them (`ticket`, `deploy`).
+
+## Operational notes
+- First use of `atlassian` and `github` requires an interactive OAuth login; headless runs (Routines, `claude -p`) reuse the stored grant or fail with "needs authorization". Document the login in the target repo's AGENTS.md (done by the template).
+- `azure` warm start is a few seconds, but a cold `npx` download can exceed the MCP startup timeout; pre-warm in cloud environment setup scripts (`npx -y @azure/mcp@latest --version`).
+- Error handling per skill: a missing or unauthorised server is reported with the exact command to fix it; skills never fabricate ticket keys, run ids or resource states.
+
+## Evidence (to be completed)
+- [ ] Golden path: `/adlc:ticket create` → `start` → `review` → `done` on `DEVOPS` in a clean workspace, with issue links.
+- [ ] `/adlc:deploy` triggering `cd.yml` through `actions_run_trigger` and polling to completion.
+- [ ] `verify` reading ACR repositories and Container Apps through the read-only Azure server.
