@@ -1,3 +1,9 @@
+## [0.5.0](https://github.com/integranz/adlc/compare/v0.4.1...v0.5.0) (2026-09-13)
+
+### Features
+
+* **templates:** idempotent .adlc/setup-azure.sh for Entra OIDC app registration, state storage and RBAC ([b691591](https://github.com/integranz/adlc/commit/b6915910916f53f01198c8ed8e9bbc3bf863d9d9))
+
 ## [0.4.1](https://github.com/integranz/adlc/compare/v0.4.0...v0.4.1) (2026-09-13)
 
 ### Bug Fixes
