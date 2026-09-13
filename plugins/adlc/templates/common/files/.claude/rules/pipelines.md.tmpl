@@ -9,4 +9,4 @@ paths:
 - CD applies `infra/app` behind the GitHub Environment approval; no other job runs `terraform apply`.
 - `workflow_run` is not used to pass a tag between workflows (it cannot carry inputs); `/adlc:deploy` triggers CD explicitly.
 - Every pushed tag is immutable and traceable to a commit (`sha-<short>` alias allowed alongside the semver).
-- Registry pulls for hardened base images use a Docker Hub token from repository secrets (`docker login dhi.io`), never inline credentials.
+- Cloud identity in workflows comes only from the repository secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (exported to Terraform as `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` with `ARM_USE_OIDC=true`, `ARM_USE_AZUREAD=true`). Hardened base images are pulled after `docker/login-action` with `registry: dhi.io`, `username: ${{ vars.DOCKERHUB_USERNAME }}`, `password: ${{ secrets.DOCKERHUB_TOKEN }}`. No other credentials exist; see `.adlc/SETUP.md`.

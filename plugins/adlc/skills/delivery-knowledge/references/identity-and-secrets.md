@@ -1,0 +1,71 @@
+# Identity, secrets and variables (cloud=azure · runner=github-actions · registry=acr · base_image=dhi)
+
+Verified against primary sources on 2026-09-13: Azure/login README, GitHub "Configuring OpenID Connect in Azure", Microsoft Learn "workload-identity-federation-create-trust", Terraform azurerm provider OIDC guide and `azurerm` backend docs, docker/login-action README, Docker Hardened Images "Use a DHI" page.
+
+## Principle
+No long-lived cloud credential is stored anywhere. GitHub Actions obtains a short-lived token through OIDC federation with an Entra app registration; Terraform and `az` reuse it. The only stored secret is a registry token for Docker Hardened Images, because `dhi.io` requires a login even for Community images.
+
+## GitHub repository: Settings → Secrets and variables → Actions
+| Name | Kind | Value | Consumed by | Why this name |
+|---|---|---|---|---|
+| `AZURE_CLIENT_ID` | secret | Application (client) ID of the app registration | `azure/login` input `client-id`; exported as `ARM_CLIENT_ID` for Terraform | Name used in the Azure/login README, GitHub's OIDC guide and Microsoft Learn |
+| `AZURE_TENANT_ID` | secret | Directory (tenant) ID | `azure/login` input `tenant-id`; `ARM_TENANT_ID` | same |
+| `AZURE_SUBSCRIPTION_ID` | secret | Subscription ID | `azure/login` input `subscription-id`; `ARM_SUBSCRIPTION_ID` (required by azurerm ≥ 4.0) | same |
+| `DOCKERHUB_TOKEN` | secret | Docker Hub personal access token, or an organization access token (Docker recommends OATs for CI) | `docker/login-action` input `password` with `registry: dhi.io` | docker/login-action README example |
+| `DOCKERHUB_USERNAME` | **variable** | Docker Hub username (or the organization name when using an OAT) | `docker/login-action` input `username` | docker/login-action README uses `vars.DOCKERHUB_USERNAME` |
+
+The three `AZURE_*` values are identifiers, not credentials. Azure/login says "it's better to create a GitHub Action secret" and also shows them as `vars.*`; adlc stores them as secrets so they never appear in logs of a public repo.
+
+Nothing else is stored: `GITHUB_TOKEN` is automatic (workflows request `contents: write` for tags/releases, `id-token: write` for OIDC), Jira is reached through the Atlassian MCP with a per-user OAuth grant (never from CI), and Key Vault secret *values* are set by a human with `az keyvault secret set`, never committed or passed through GitHub.
+
+## GitHub repository: Settings → Environments
+| Environment | Protection | Purpose |
+|---|---|---|
+| `dev` (from `github.cd_environment`) | Required reviewers: at least one human | The CD job runs with `environment: dev`; its OIDC token carries the subject `repo:<owner>/<repo>:environment:dev`, and the approval gate happens before `terraform apply` of `infra/app` |
+
+## Entra ID: one app registration for CI/CD
+Create one app registration (for example `sp-<project>-github`) with **two federated credentials** (issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`; wildcards are not supported):
+| Name | Subject | Used by |
+|---|---|---|
+| `github-main` | `repo:<owner>/<repo>:ref:refs/heads/main` | CI on `main`: `az acr login` + image push |
+| `github-env-dev` | `repo:<owner>/<repo>:environment:dev` | CD job with `environment: dev`: Terraform plan/apply of `infra/app` |
+A job that references an environment presents the environment subject, not the branch subject (Microsoft Learn: "For Jobs tied to an environment: `repo:<Organization/Repository>:environment:<Name>`"). Pull-request builds do not touch Azure, so no `pull_request` credential is needed.
+
+## Azure RBAC for the app registration's service principal (least privilege)
+| Scope | Role | Why |
+|---|---|---|
+| Container registry | `AcrPush` | CI pushes `<acr>.azurecr.io/<project>/<app>:<semver>` |
+| Resource group of the environment | `Contributor` | CD applies `infra/app` (Container Apps environment, apps, revisions) |
+| State container `tfstate` (or the storage account) | `Storage Blob Data Contributor` | Terraform backend with `use_azuread_auth = true` (no storage keys) |
+The service principal does **not** get `User Access Administrator`/`Owner`: role assignments (UAMI → `AcrPull`, UAMI → `Key Vault Secrets User`) live in `infra/foundation`, which a human applies.
+
+## Azure RBAC for the human who applies `infra/foundation`
+`Contributor` + `User Access Administrator` (or `Owner`) on the environment resource group, `Storage Blob Data Contributor` on the state container, `Key Vault Secrets Officer` on the vault to set secret values.
+
+## Terraform state (bootstrap, once, by a human)
+Storage account and container created outside Terraform (chicken-and-egg), with shared-key access disabled so only Entra ID identities can read state:
+```
+az group create -n <state_rg> -l <location>
+az storage account create -n <state_sa> -g <state_rg> -l <location> --sku Standard_LRS --kind StorageV2 \
+  --min-tls-version TLS1_2 --allow-blob-public-access false --allow-shared-key-access false
+az storage container create -n tfstate --account-name <state_sa> --auth-mode login
+```
+Backend arguments rendered by adlc: `resource_group_name`, `storage_account_name`, `container_name`, `key = "<project>/<layer>/<env>.tfstate"`, `use_azuread_auth = true`, and in CI `use_oidc = true`.
+
+## Environment variables Terraform and the CLIs read
+| Where | Variable | Value / source |
+|---|---|---|
+| Local shell (human) | `ARM_SUBSCRIPTION_ID` | the subscription; azurerm ≥ 4.0 requires it and adlc keeps it out of the repo. Auth comes from `az login`; `az account set --subscription <id>` selects the subscription for the CLI |
+| CI/CD jobs | `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` | from the three `AZURE_*` secrets |
+| CI/CD jobs | `ARM_USE_OIDC=true`, `ARM_USE_AZUREAD=true` | provider and backend authenticate with the GitHub OIDC token; the provider and backend read `ACTIONS_ID_TOKEN_REQUEST_URL`/`ACTIONS_ID_TOKEN_REQUEST_TOKEN` automatically when the job has `permissions: id-token: write` |
+| CI build | `VERSION` (build-arg) | from the versioning step (`nbgv` `SemVer2` or semantic-release), stamped into images |
+
+## Verification commands (used by `/adlc:verify` and the setup checklist)
+```
+gh secret list -R <owner>/<repo>            # AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, DOCKERHUB_TOKEN
+gh variable list -R <owner>/<repo>          # DOCKERHUB_USERNAME
+gh api repos/<owner>/<repo>/environments/dev --jq '.protection_rules[].type'    # required_reviewers
+az ad app federated-credential list --id <app-object-id> --query "[].subject" -o tsv
+az role assignment list --assignee <client-id> --all --query "[].{role:roleDefinitionName,scope:scope}" -o table
+az storage account show -n <state_sa> --query allowSharedKeyAccess     # false
+```

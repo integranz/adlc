@@ -44,6 +44,13 @@ test("scaffold renders the common set for the example config", () => {
   assert.match(read(repo, ".claude/rules/versioning.md"), /version\.json.*single version source/);
   assert.doesNotMatch(read(repo, ".claude/rules/versioning.md"), /Conventional Commits/);
   assert.match(read(repo, ".claude/rules/branching.md"), /trunk-based/);
+  const setup = read(repo, ".adlc/SETUP.md");
+  for (const n of ["AZURE_CLIENT_ID", "AZURE_TENANT_ID", "AZURE_SUBSCRIPTION_ID", "DOCKERHUB_TOKEN", "DOCKERHUB_USERNAME",
+                   "repo:integranz/adlc-demo:ref:refs/heads/main", "repo:integranz/adlc-demo:environment:dev",
+                   "stadlctfstate", "rg-adlc-tfstate", "--allow-shared-key-access false", "api://AzureADTokenExchange"]) {
+    assert.ok(setup.includes(n), `SETUP.md missing ${n}`);
+  }
+  assert.doesNotMatch(setup, /<%/, "unrendered placeholder in SETUP.md");
   assert.match(r.stdout, /no repo-side templates for: .*stack=dotnet8-api/); // stack templates arrive on day 5
 });
 
