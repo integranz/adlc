@@ -28,7 +28,9 @@ gh api -X PUT repos/<% github.owner %>/<% github.repo %>/environments/<% github.
 JSON
 ```
 <%/eq%>
-<%#eq options.cloud "azure"%>## 3. Entra ID app registration for CI/CD (OIDC, no client secret)
+<%#eq options.cloud "azure"%>> Steps 3–5 are automated by `bash .adlc/setup-azure.sh` (dry run) / `--apply` (idempotent, human-only). The commands below are what it runs.
+
+## 3. Entra ID app registration for CI/CD (OIDC, no client secret)
 ```
 az account set --subscription <subscription id>
 APP_ID=$(az ad app create --display-name sp-<% project.name %>-github --query appId -o tsv)

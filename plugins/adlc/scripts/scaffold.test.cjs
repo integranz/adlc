@@ -51,6 +51,11 @@ test("scaffold renders the common set for the example config", () => {
     assert.ok(setup.includes(n), `SETUP.md missing ${n}`);
   }
   assert.doesNotMatch(setup, /<%/, "unrendered placeholder in SETUP.md");
+  const script = read(repo, ".adlc/setup-azure.sh");
+  assert.doesNotMatch(script, /<%/, "unrendered placeholder in setup-azure.sh");
+  for (const n of ['RG="rg-adlc-demo-dev"', 'STATE_SA="stadlctfstate"', 'GH_OWNER="integranz"', "sp-${PROJECT}-github", "environment:${GH_ENV}", "--allow-shared-key-access false"]) assert.ok(script.includes(n), `setup-azure.sh missing ${n}`);
+  assert.equal(spawnSync("bash", ["-n", path.join(repo, ".adlc", "setup-azure.sh")]).status, 0, "setup-azure.sh has a bash syntax error");
+  assert.ok((fs.statSync(path.join(repo, ".adlc", "setup-azure.sh")).mode & 0o111) !== 0, "setup-azure.sh should be executable");
   assert.match(r.stdout, /no repo-side templates for: .*stack=dotnet8-api/); // stack templates arrive on day 5
 });
 

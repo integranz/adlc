@@ -2,6 +2,16 @@
 
 Verified against primary sources on 2026-09-13: Azure/login README, GitHub "Configuring OpenID Connect in Azure", Microsoft Learn "workload-identity-federation-create-trust", Terraform azurerm provider OIDC guide and `azurerm` backend docs, docker/login-action README, Docker Hardened Images "Use a DHI" page.
 
+## Who can run the setup script (`.adlc/setup-azure.sh`)
+| Step | Permission the human needs | Source |
+|---|---|---|
+| Create the app registration and its service principal | Any member user if the tenant's authorization policy has `allowedToCreateApps = true`; otherwise the Entra role **Application Administrator** or **Cloud Application Administrator** (or Global Administrator) | Microsoft Learn, "Create a trust relationship…": creator becomes owner; policy `defaultUserRolePermissions.allowedToCreateApps` |
+| Add federated credentials | Owner of the app (the creator) or Application Administrator / Cloud Application Administrator / Global Administrator / Hybrid Identity Administrator | same page, "Important considerations" |
+| Create resource groups and the storage account | `Contributor` (or `Owner`) on the subscription | Azure RBAC |
+| Create role assignments (step 5) | `Owner` or `User Access Administrator` at the subscription or on the target resource groups (`Microsoft.Authorization/roleAssignments/write`) | Azure RBAC |
+| Create the state container with `--auth-mode login` on an account with shared keys disabled | `Storage Blob Data Contributor` on the storage account (data-plane role; the script assigns it to you first) | `azurerm` backend docs / Azure Storage RBAC |
+The script runs a preflight that checks these and stops before changing anything if a required permission is missing. Dry run is the default; `--apply` executes; `--apply --set-github-secrets` also pushes the three `AZURE_*` secrets with `gh`.
+
 ## Principle
 No long-lived cloud credential is stored anywhere. GitHub Actions obtains a short-lived token through OIDC federation with an Entra app registration; Terraform and `az` reuse it. The only stored secret is a registry token for Docker Hardened Images, because `dhi.io` requires a login even for Community images.
 
