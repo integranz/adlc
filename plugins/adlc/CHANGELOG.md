@@ -1,3 +1,9 @@
+## [0.3.0](https://github.com/integranz/adlc/compare/v0.2.0...v0.3.0) (2026-09-13)
+
+### Features
+
+* **bootstrap:** full intake skill with explicit defaults table and non-interactive refusal ([d35ab84](https://github.com/integranz/adlc/commit/d35ab84ee1a08f324d0255477adc354aa0b32749))
+
 ## [0.2.0](https://github.com/integranz/adlc/compare/v0.1.0...v0.2.0) (2026-09-09)
 
 ### Features
