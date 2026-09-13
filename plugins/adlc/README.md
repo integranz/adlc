@@ -2,7 +2,7 @@
 
 Takes a repository from "code in a repo" to "versioned image running in the cloud, verified, and tracked in a ticket", driven by skills, three role sub-agents and mechanical guardrail hooks.
 
-Status: **day 3 of 16**. Guard hooks, role sub-agents, MCP servers, option registry, config schema and the scaffold engine are in place; skills are still stubs.
+Status: **day 4 of 16**. Guard hooks, role sub-agents, MCP servers, option registry, config schema, scaffold engine and the `bootstrap` skill are in place and exercised on `integranz/adlc-demo`; the five command skills are still stubs.
 
 ## Install
 ```

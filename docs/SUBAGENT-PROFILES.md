@@ -21,7 +21,9 @@ Plugin-agent constraints (docs, verified 2026-09-09): plugin agents ignore `hook
 ## Run log (real workflows)
 | Date | Profile | Task | Outcome |
 |---|---|---|---|
-| 2026-09-09 | (all) | headless check that the plugin exposes the three agents | see DECISIONS.md |
-| _pending_ | explore | app discovery on `adlc-demo` during `/adlc:bootstrap` | |
-| _pending_ | execute | Dockerfiles for `apps/api` and `apps/web` | |
+| 2026-09-09 | (all) | headless check that the plugin exposes the three agents | listed as `adlc:explore`, `adlc:execute`, `adlc:verify` |
+| 2026-09-13 | explore | app discovery on `integranz/adlc-demo` (bootstrap step 1, headless `claude -p --plugin-dir`, real repo) | Returned the inventory table with `path:line` evidence for kind, stack, port, health and test command. Reported test commands as **not verified** when the permission system blocked them instead of guessing. Found a real defect: the web app fetched `/api/health` while the API only served `/health` (fixed in adlc-demo `28d10b3`). Flagged that the web runtime port came from the README, not code. No edits attempted. |
+| 2026-09-13 | verify | bootstrap step 5 during the first headless `/adlc:bootstrap --yes --no-ticket` run (scratch clone) | 7 claims, 7 CONFIRMED (config validates, generated files exist without placeholders, settings names marketplace + plugin, rules carry `paths:`, `.gitignore` entries). Did not modify anything. |
+| 2026-09-13 | (parent) | first end-to-end `/adlc:bootstrap` on `adlc-demo`: interview (AskUserQuestion), config, `scaffold.cjs`, 14 verification claims, commit `28d10b3` | Ticket step deferred: Atlassian MCP for `integranz.atlassian.net` not yet authorised in the session. |
+| _pending_ | execute | Dockerfiles for `apps/api` and `apps/web` (day 5) | |
 | _pending_ | verify | post-deploy verification of the first CD run | |
