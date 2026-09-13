@@ -1,3 +1,9 @@
+## [0.5.1](https://github.com/integranz/adlc/compare/v0.5.0...v0.5.1) (2026-09-13)
+
+### Bug Fixes
+
+* **setup-azure:** count inherited roles, never assign privileged roles, soft human assignments, report ABAC conditions ([7314301](https://github.com/integranz/adlc/commit/73143016cfce65f35aa50b89f2fa9be245f09b99))
+
 ## [0.5.0](https://github.com/integranz/adlc/compare/v0.4.1...v0.5.0) (2026-09-13)
 
 ### Features
