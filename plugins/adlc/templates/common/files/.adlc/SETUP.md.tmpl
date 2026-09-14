@@ -22,11 +22,13 @@ gh variable set DOCKERHUB_USERNAME -R <% github.owner %>/<% github.repo %> --bod
 ## 2. GitHub → Settings → Environments
 Create `<% github.cd_environment %>` with **Required reviewers** (yourself at least). The CD job runs with `environment: <% github.cd_environment %>`; approval happens before `terraform apply` of `infra/app`.
 ```
-gh api -X PUT repos/<% github.owner %>/<% github.repo %>/environments/<% github.cd_environment %> \
-  --input - <<'JSON'
-{ "reviewers": [ { "type": "User", "id": <your numeric GitHub user id: gh api user --jq .id> } ] }
+gh api -X PUT repos/<% github.owner %>/<% github.repo %>/environments/<% github.cd_environment %> --input - <<JSON
+{ "reviewers": [ { "type": "User", "id": $(gh api user --jq .id) } ],
+  "deployment_branch_policy": { "protected_branches": false, "custom_branch_policies": true } }
 JSON
+gh api -X POST repos/<% github.owner %>/<% github.repo %>/environments/<% github.cd_environment %>/deployment-branch-policies -f name=<% github.default_branch %> -f type=branch
 ```
+The branch policy limits deployments to `<% github.default_branch %>`; CD is dispatched on that branch with an immutable tag input.
 <%/eq%>
 <%#eq options.cloud "azure"%>> Steps 3–5 are automated by `bash .adlc/setup-azure.sh` (dry run) / `--apply` (idempotent, human-only). The commands below are what it runs.
 

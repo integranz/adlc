@@ -31,7 +31,7 @@ Nothing else is stored: `GITHUB_TOKEN` is automatic (workflows request `contents
 ## GitHub repository: Settings → Environments
 | Environment | Protection | Purpose |
 |---|---|---|
-| `dev` (from `github.cd_environment`) | Required reviewers: at least one human | The CD job runs with `environment: dev`; its OIDC token carries the subject `repo:<owner>/<repo>:environment:dev`, and the approval gate happens before `terraform apply` of `infra/app` |
+| `dev` (from `github.cd_environment`) | Required reviewers: at least one human; deployment branch policy: default branch only | The CD job runs with `environment: dev`; its OIDC token carries the subject `repo:<owner>/<repo>:environment:dev`, and the approval gate happens before `terraform apply` of `infra/app`. The branch policy stops a deployment job from a feature branch even if someone dispatches the workflow there |
 
 ## Entra ID: one app registration for CI/CD
 Create one app registration (for example `sp-<project>-github`) with **two federated credentials** (issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`; wildcards are not supported):
