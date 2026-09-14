@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Deterministic scaffold: renders plugin templates into a target repo according to .adlc/config.yaml.
-// usage: node scaffold.cjs [--repo <dir>] [--config <path>] [--force] [--dry-run]
+// usage: node scaffold.cjs [--repo <dir>] [--config <path>] [--force] [--dry-run] [--app <name>]
 // Layout: templates/common/files/**            -> always
 //         templates/<dimension>/<option>/files/** -> when options.<dimension> == option
 //         templates/stack/<stack>/app/**        -> into each app path with that stack (context: app + root)
@@ -21,7 +21,11 @@ const T = path.join(PLUGIN_ROOT, "templates");
 
 const { config, options, errors } = loadConfig(configPath);
 if (errors.length) { console.error(`config invalid (${configPath}):`); errors.forEach(e => console.error(`  - ${e}`)); process.exit(1); }
-const ctx = { ...config, derived: derive(config, options) };
+let derived;
+try { derived = derive(config, options, repo); } catch (e) { console.error(`config error: ${e.message}\nnothing was written`); process.exit(1); }
+const ctx = { ...config, derived };
+const onlyApp = val("--app", null); // render only this app's stack templates (used by /adlc:dockerize)
+if (onlyApp && !derived.apps.some(a => a.name === onlyApp)) { console.error(`--app ${onlyApp}: no such app in config`); process.exit(1); }
 
 function walk(dir) { if (!fs.existsSync(dir)) return []; const out = []; for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) out.push(...walk(p)); else out.push(p); } return out; }
 const plan = []; // {src, dest, context, tmpl}
@@ -35,9 +39,15 @@ function addSet(srcRoot, destRoot, context, label) {
   }
 }
 console.log(`scaffold ${config.project.name} -> ${repo}${dry ? " (dry run)" : ""}`);
-addSet(path.join(T, "common", "files"), repo, ctx, "common");
-for (const [dim, opt] of Object.entries(config.options)) addSet(path.join(T, dim, opt, "files"), repo, ctx, `${dim}=${opt}`);
-for (const app of ctx.derived.apps) addSet(path.join(T, "stack", app.stack, "app"), path.join(repo, app.path), { ...ctx, app }, `stack=${app.stack} (${app.name})`);
+if (!onlyApp) {
+  addSet(path.join(T, "common", "files"), repo, ctx, "common");
+  for (const [dim, opt] of Object.entries(config.options)) addSet(path.join(T, dim, opt, "files"), repo, ctx, `${dim}=${opt}`);
+}
+for (const app of ctx.derived.apps) if (!onlyApp || app.name === onlyApp) {
+  const stackDir = path.join(T, "stack", app.stack, "app");
+  if (fs.existsSync(stackDir) && app.build && app.build.error) { console.error(`config error: ${app.build.error}\nnothing was written`); process.exit(1); }
+  addSet(stackDir, path.join(repo, app.path), { ...ctx, app }, `stack=${app.stack} (${app.name})`);
+}
 if (missing.length) console.log(`  (no repo-side templates for: ${missing.join(", ")})`);
 
 // Phase 1: render everything in memory. Any template error aborts before a single file is written.

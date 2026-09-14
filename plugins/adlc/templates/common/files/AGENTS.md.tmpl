@@ -19,6 +19,7 @@
 | `infra/app/` | Compute for the apps + image tags. Applied only by the CD workflow behind the environment approval |
 | `.github/workflows/ci.yml` | Build, test, version, push immutable image tags |
 | `.github/workflows/cd.yml` | Deploy one immutable tag to one environment (`workflow_dispatch`) |
+| `compose.yaml` | Local run of all app images as built for the cloud (frontends use `nginx.local.conf`) |
 | `.claude/rules/` | Path-scoped rules (see Rules below) |
 
 ## Delivery options chosen
@@ -33,6 +34,7 @@ Change an option with `/adlc:bootstrap`; do not edit generated files by hand to 
 |---|---|
 | Onboard or change delivery options | `/adlc:bootstrap` |
 | Build and smoke-test one app image locally | `/adlc:dockerize <app path>` |
+| Run every app image together locally | `VERSION=$(nbgv get-version -v SemVer2) docker compose up --build` (see `compose.yaml`) |
 | See what infrastructure would change | `/adlc:plan <env> --layer foundation\|app` |
 | Deploy a released tag | `/adlc:deploy <tag> <env>` |
 | Prove a deployment is correct | `/adlc:verify <env> <tag>` |

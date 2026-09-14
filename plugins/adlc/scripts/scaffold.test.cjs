@@ -10,6 +10,9 @@ function mkRepo(mutate) {
   execFileSync("git", ["init", "-q", "-b", "main", repo]);
   const cfg = yaml.load(fs.readFileSync(EXAMPLE, "utf8")); if (mutate) mutate(cfg);
   fs.mkdirSync(path.join(repo, ".adlc"), { recursive: true });
+  fs.mkdirSync(path.join(repo, "apps/api/src/Api"), { recursive: true }); fs.writeFileSync(path.join(repo, "apps/api/src/Api/Api.csproj"), "<Project/>");
+  fs.mkdirSync(path.join(repo, "apps/api/tests/Api.Tests"), { recursive: true }); fs.writeFileSync(path.join(repo, "apps/api/tests/Api.Tests/Api.Tests.csproj"), "<Project/>");
+  fs.mkdirSync(path.join(repo, "apps/web"), { recursive: true }); fs.writeFileSync(path.join(repo, "apps/web/package.json"), "{}");
   fs.writeFileSync(path.join(repo, ".adlc", "config.yaml"), yaml.dump(cfg));
   return repo;
 }
@@ -56,7 +59,17 @@ test("scaffold renders the common set for the example config", () => {
   for (const n of ['RG="rg-adlc-demo-dev"', 'STATE_SA="stadlctfstate"', 'GH_OWNER="integranz"', "sp-${PROJECT}-github", "environment:${GH_ENV}", "--allow-shared-key-access false"]) assert.ok(script.includes(n), `setup-azure.sh missing ${n}`);
   assert.equal(spawnSync("bash", ["-n", path.join(repo, ".adlc", "setup-azure.sh")]).status, 0, "setup-azure.sh has a bash syntax error");
   assert.ok((fs.statSync(path.join(repo, ".adlc", "setup-azure.sh")).mode & 0o111) !== 0, "setup-azure.sh should be executable");
-  assert.match(r.stdout, /no repo-side templates for: .*stack=dotnet8-api/); // stack templates arrive on day 5
+  const api = read(repo, "apps/api/Dockerfile"), web = read(repo, "apps/web/Dockerfile"), ng = read(repo, "apps/web/nginx.conf"), ngl = read(repo, "apps/web/nginx.local.conf");
+  for (const s of [api, web, ng, ngl, read(repo, "compose.yaml")]) assert.doesNotMatch(s, /<%/, "unrendered placeholder in a stack template");
+  assert.match(api, /FROM dhi\.io\/dotnet:\$\{DOTNET_VERSION\}-sdk AS build/); assert.match(api, /ARG DOTNET_VERSION=8\.0/);
+  assert.match(api, /dotnet restore src\/Api\/Api\.csproj/); assert.match(api, /ENTRYPOINT \["dotnet", "Api\.dll"\]/); assert.match(api, /USER 65532/);
+  assert.match(api, /org\.opencontainers\.image\.source="https:\/\/github\.com\/integranz\/adlc-demo"/);
+  assert.match(web, /FROM dhi\.io\/node:\$\{NODE_VERSION\}-dev AS build/); assert.match(web, /FROM dhi\.io\/nginx:\$\{NGINX_VERSION\} AS runtime/); assert.match(web, /VITE_APP_VERSION=\$\{VERSION\}/);
+  assert.match(ng, /location \/api\/ \{[\s\S]*proxy_pass\s+http:\/\/api;/, "cloud nginx must proxy to http://api (Container Apps app name, port 80)");
+  assert.match(ngl, /proxy_pass\s+http:\/\/api:8080;/, "local nginx must proxy to the api container port");
+  assert.doesNotMatch(ng, /proxy_set_header\s+Host/, "Host must stay $proxy_host for Container Apps routing");
+  assert.ok(fs.existsSync(path.join(repo, "apps/api/.dockerignore")) && fs.existsSync(path.join(repo, "apps/web/.dockerignore")));
+  const compose = read(repo, "compose.yaml"); assert.match(compose, /"8080:8080"/); assert.match(compose, /"8081:8080"/); assert.match(compose, /nginx\.local\.conf:\/etc\/nginx\/conf\.d\/default\.conf:ro/);
 });
 
 test("re-run skips existing files; --force replaces; .gitignore merges", () => {
@@ -97,6 +110,19 @@ test("planned or later options are rejected before anything is written", () => {
     assert.ok(!fs.existsSync(path.join(repo, "AGENTS.md")), "must not write a partial scaffold");
     const v = validate(path.join(repo, ".adlc", "config.yaml")); assert.equal(v.status, 1); assert.match(v.stderr, msg);
   }
+});
+
+test("--app renders only that app's stack templates", () => {
+  const repo = mkRepo();
+  const r = run(["--repo", repo, "--app", "web"], repo); assert.equal(r.status, 0, r.stderr);
+  assert.ok(fs.existsSync(path.join(repo, "apps/web/Dockerfile"))); assert.ok(!fs.existsSync(path.join(repo, "apps/api/Dockerfile"))); assert.ok(!fs.existsSync(path.join(repo, "AGENTS.md")));
+  const bad = run(["--repo", repo, "--app", "nope"], repo); assert.equal(bad.status, 1); assert.match(bad.stderr, /no such app/);
+});
+
+test("dotnet app without a detectable csproj fails before writing", () => {
+  const repo = mkRepo(); fs.rmSync(path.join(repo, "apps/api/src"), { recursive: true });
+  const r = run(["--repo", repo], repo); assert.equal(r.status, 1); assert.match(r.stderr, /no \.csproj found under apps\/api/);
+  assert.ok(!fs.existsSync(path.join(repo, "AGENTS.md")));
 });
 
 test("semantic-release option renders its versioning rule", () => {

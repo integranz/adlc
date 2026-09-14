@@ -305,6 +305,40 @@
               "type": "string"
             },
             "description": "Names of other apps this app calls (e.g. a frontend proxying /api to the api app)."
+          },
+          "build": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Stack-specific build inputs. Missing values are detected by the scaffold from the app directory (deterministic) and can be pinned here.",
+            "properties": {
+              "project": {
+                "type": "string",
+                "description": "dotnet: path of the .csproj to publish, relative to the app path (default: the single non-test *.csproj found)"
+              },
+              "assembly": {
+                "type": "string",
+                "description": "dotnet: entry assembly name without .dll (default: csproj file name)"
+              },
+              "dist_dir": {
+                "type": "string",
+                "description": "react-vite: build output directory relative to the app path (default: dist)"
+              },
+              "node_version": {
+                "type": "string",
+                "pattern": "^[0-9]+$",
+                "description": "react-vite/node: major Node version for the build stage (default: 22)"
+              },
+              "dotnet_version": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+$",
+                "description": "dotnet: SDK/runtime version tag (default: 8.0)"
+              },
+              "nginx_version": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+$",
+                "description": "react-vite: nginx runtime image tag (default: 1.29)"
+              }
+            }
           }
         },
         "allOf": [

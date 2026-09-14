@@ -61,10 +61,43 @@ function loadConfig(file) {
 }
 
 // Values derived from config used by templates.
-function derive(config, options) {
+// Deterministic build defaults per stack; repoRoot is needed to detect the .NET project file.
+function buildDefaults(app, repoRoot) {
+  const b = { ...(app.build || {}) };
+  if (app.stack === "dotnet8-api") {
+    b.dotnet_version = b.dotnet_version || "8.0";
+    if (!b.project && repoRoot) {
+      const dir = path.join(repoRoot, app.path);
+      const found = [];
+      const walk = (d, depth) => { if (depth > 4 || !fs.existsSync(d)) return; for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        if (e.isDirectory()) { if (!/^(bin|obj|node_modules|\.git)$/.test(e.name)) walk(path.join(d, e.name), depth + 1); }
+        else if (e.name.endsWith(".csproj") && !/test/i.test(path.relative(dir, path.join(d, e.name)))) found.push(path.relative(dir, path.join(d, e.name))); } };
+      walk(dir, 0);
+      if (found.length === 1) b.project = found[0].split(path.sep).join("/");
+      else if (found.length > 1) b.error = `apps.${app.name}: several .csproj candidates (${found.join(", ")}); set build.project in .adlc/config.yaml`;
+      else b.error = `apps.${app.name}: no .csproj found under ${app.path}; set build.project in .adlc/config.yaml`;
+    }
+    if (!b.assembly && b.project) b.assembly = path.basename(b.project, ".csproj");
+    b.project_dir = b.project ? path.dirname(b.project) : ".";
+  }
+  if (app.stack === "react-vite" || app.stack === "node-ts-api") { b.node_version = b.node_version || "22"; b.dist_dir = b.dist_dir || "dist"; }
+  if (app.stack === "react-vite") b.nginx_version = b.nginx_version || "1.29";
+  return b;
+}
+
+function derive(config, options, repoRoot) {
   const registryHost = config.options.registry === "acr" ? `${config.azure.acr_name}.azurecr.io`
     : config.options.registry === "ghcr" ? "ghcr.io" : "<registry>";
-  const apps = config.apps.map(a => ({ ...a, image: `${registryHost}/${a.image_repository}` }));
+  const byName = Object.fromEntries(config.apps.map(a => [a.name, a]));
+  // Upstream reachability differs per compute: on Container Apps every app is reachable as http://<app-name> (port 80,
+  // through the environment proxy); in local docker compose the service name resolves and the container port is used.
+  const apps = config.apps.map((a, i) => {
+    const upstreams = (a.upstreams || []).map(n => ({ name: n, port: byName[n]?.port || 8080, path_prefix: "/api/",
+      url_cloud: config.options.compute === "aca" ? `http://${n}` : `http://${n}:${byName[n]?.port || 8080}`,
+      url_local: `http://${n}:${byName[n]?.port || 8080}` }));
+    return { ...a, image: `${registryHost}/${a.image_repository}`, image_local: `${config.project.name}/${a.name}`, local_port: 8080 + i,
+      build: buildDefaults(a, repoRoot), upstream_list: upstreams, primary_upstream: upstreams[0] || null };
+  });
   return {
     plugin_version: pluginVersion(),
     marketplace: { name: options.distribution.marketplace, repo: options.distribution.repo, plugin: options.distribution.plugin },
