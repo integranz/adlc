@@ -34,8 +34,10 @@ dir="$(cd "$dir" 2>/dev/null && pwd -P || printf '%s' "$dir")"
 
 case "$dir" in *"/infra/app"|*"/infra/app/"*) deny "The infra/app layer is applied only by the CD workflow behind the environment approval gate. Use /adlc:deploy <tag> <env> instead of applying it here.";; esac
 
-# Plan file = last token after 'apply' that is not a flag
-planfile="$(printf '%s' "$cmd" | sed -E 's/.*terraform([[:space:]]+-[^[:space:]]+)*[[:space:]]+apply[[:space:]]*//' | tr ' ' '\n' | grep -Ev '^-|^$|^&&|^;|^\|' | tail -1 || true)"
+# Plan file = last non-flag token of the apply command itself, i.e. before any pipe, redirect or command separator
+# (so `terraform apply tfplan.dev | less` resolves tfplan.dev, not `less`).
+applyargs="$(printf '%s' "$cmd" | sed -E 's/.*terraform([[:space:]]+-[^[:space:]]+)*[[:space:]]+apply([[:space:]]|$)//' | sed -E 's/[[:space:]]*(\||;|&&|\|\||>|<|2>).*$//')"
+planfile="$(printf '%s' "$applyargs" | tr ' ' '\n' | grep -Ev '^-|^$' | tail -1 || true)"
 [ -n "$planfile" ] || deny "terraform apply needs a saved plan file. Run /adlc:plan <env> --layer foundation, review the plan, then a human approves it with: bash \"\${CLAUDE_PLUGIN_ROOT}/scripts/approve-apply.sh\" <planfile>"
 case "$planfile" in /*) planpath="$planfile";; *) planpath="$dir/$planfile";; esac
 [ -f "$planpath" ] || deny "Plan file '$planfile' does not exist in $dir. Re-run /adlc:plan and apply the exact plan file it produced."

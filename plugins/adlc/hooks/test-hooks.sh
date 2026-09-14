@@ -46,6 +46,11 @@ expect "cd foundation && apply, approved"      guard-terraform-apply.sh 0 "$(jso
 bash "$P/scripts/approve-apply.sh" "$T/infra/foundation/tfplan.dev" >/dev/null
 expect "cd infra; cd foundation; apply ok"     guard-terraform-apply.sh 0 "$(json_bash 'cd infra; cd foundation; terraform apply tfplan.dev' "$T")" '"permissionDecision":"allow"'
 expect "cd app quoted && apply denied"         guard-terraform-apply.sh 2 "$(json_bash "cd \"$T/infra/app\" && terraform apply tfplan.dev" "/tmp")"
+bash "$P/scripts/approve-apply.sh" "$T/infra/foundation/tfplan.dev" >/dev/null
+expect "apply | pager resolves planfile (approved)" guard-terraform-apply.sh 0 "$(json_bash 'terraform apply tfplan.dev | less' "$T/infra/foundation")" '"permissionDecision":"allow"'
+expect "apply > log without approval denied"   guard-terraform-apply.sh 2 "$(json_bash 'terraform apply tfplan.dev > apply.log 2>&1' "$T/infra/foundation")"
+expect "apply | tee, planfile missing denied"  guard-terraform-apply.sh 2 "$(json_bash 'terraform apply nope.plan | tee out.txt' "$T/infra/foundation")"
+expect "apply -no-color planfile | cat"        guard-terraform-apply.sh 2 "$(json_bash 'terraform apply -no-color tfplan.dev | cat' "$T/infra/foundation")"
 expect "env prefix stripped"                  guard-terraform-apply.sh 2 "$(json_bash 'TF_LOG=debug terraform apply' "$T/infra/foundation")"
 
 echo "guard-secrets-and-state"

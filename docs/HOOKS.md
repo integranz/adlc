@@ -4,7 +4,9 @@ Plugin hooks live in `plugins/adlc/hooks/hooks.json` and run for every tool call
 
 Why hooks and not rules: a rule tells the model what to do; a hook makes it impossible to do otherwise. A hook `ask` decision becomes `allow` in headless (`-p`, Routine, cloud) sessions, so none of these guards rely on a UI prompt.
 
-Branch tests: `bash plugins/adlc/hooks/test-hooks.sh` (72 cases, run in CI by `plugin-ci.yml`). Last local run: 2026-09-09, `passed=72 failed=0`.
+Branch tests: `bash plugins/adlc/hooks/test-hooks.sh` (76 cases, run in CI by `plugin-ci.yml`). Last local run: 2026-09-14, `passed=76 failed=0`.
+
+**Live gate test (2026-09-14, `adlc-demo` foundation layer):** in a Claude Code session with the plugin, `terraform -chdir=infra/foundation apply tfplan.dev` was blocked (`adlc guard: BLOCKED`, no approval); the human ran `scripts/approve-apply.sh infra/foundation/tfplan.dev` in another terminal; the same command then applied 8 resources and the hook consumed the token (`.adlc/approvals/` empty afterwards); a subsequent read-only plan reported no changes. Nothing was applied twice.
 
 ---
 
@@ -16,7 +18,7 @@ Branch tests: `bash plugins/adlc/hooks/test-hooks.sh` (72 cases, run in CI by `p
 | **Allows** | `plan`, `validate`, `fmt`, `init`, `show`, `output`; `apply <planfile>` in `infra/foundation` when a matching approval token exists (then consumes the token) |
 | **Human approval** | In a separate terminal: `bash <plugin-root>/scripts/approve-apply.sh infra/foundation/tfplan.dev`. Writes `.adlc/approvals/<sha256 of plan>` with a 10-minute expiry (`ADLC_APPROVAL_TTL` to change). Single use: the hook deletes it on the first allowed apply. A changed plan file has a different hash and needs a new approval. |
 | **On failure** | Missing `jq` and `python3` → block. Unknown layout → block with instructions. Expired token → deleted and blocked. |
-| **Evidence** | `test-hooks.sh` section `guard-terraform-apply` (20 cases incl. `cd … &&` chains and `-chdir=`); live headless checks 2026-09-09 on both layers (see `DECISIONS.md`) |
+| **Evidence** | `test-hooks.sh` section `guard-terraform-apply` (24 cases incl. `cd … &&` chains, `-chdir=`, pipes and redirects after the plan file); live headless checks 2026-09-09 on both layers; live approved apply 2026-09-14 (see above) |
 
 ## 2. `guard-secrets-and-state.sh` — nothing secret reaches git or IaC
 | | |
