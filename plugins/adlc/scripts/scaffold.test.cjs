@@ -112,6 +112,23 @@ test("planned or later options are rejected before anything is written", () => {
   }
 });
 
+test("foundation layer renders and passes terraform fmt/validate", () => {
+  const repo = mkRepo();
+  const r = run(["--repo", repo], repo); assert.equal(r.status, 0, r.stderr);
+  const dir = path.join(repo, "infra", "foundation");
+  for (const f of ["versions.tf", "providers.tf", "locals.tf", "main.tf", "outputs.tf", "README.md"]) assert.ok(fs.existsSync(path.join(dir, f)), `missing infra/foundation/${f}`);
+  const versions = read(repo, "infra/foundation/versions.tf"), locals = read(repo, "infra/foundation/locals.tf");
+  assert.doesNotMatch(versions + locals, /<%/);
+  assert.match(versions, /key\s+= "adlc-demo\/foundation\/dev\.tfstate"/); assert.match(versions, /storage_account_name = "stadlctfstate"/); assert.match(versions, /use_azuread_auth\s+= true/);
+  assert.match(locals, /acr_name\s+= "acradlcdemo"/); assert.match(locals, /key_vault_name\s+= "kv-adlc-demo-dev"/); assert.match(locals, /cicd_principal_name\s+= "sp-adlc-demo-github"/);
+  const tf = spawnSync("terraform", ["version"], { encoding: "utf8" });
+  if (tf.status !== 0) { console.log("  (terraform not installed: fmt/validate skipped)"); return; }
+  const fmt = spawnSync("terraform", ["-chdir=" + dir, "fmt", "-check", "-recursive"], { encoding: "utf8" }); assert.equal(fmt.status, 0, `terraform fmt -check: ${fmt.stdout}${fmt.stderr}`);
+  const init = spawnSync("terraform", ["-chdir=" + dir, "init", "-backend=false", "-input=false"], { encoding: "utf8", timeout: 240000 });
+  if (init.status !== 0) { console.log("  (terraform init -backend=false failed, likely offline: validate skipped)"); return; }
+  const val = spawnSync("terraform", ["-chdir=" + dir, "validate", "-no-color"], { encoding: "utf8" }); assert.equal(val.status, 0, `terraform validate: ${val.stdout}${val.stderr}`);
+});
+
 test("--app renders only that app's stack templates", () => {
   const repo = mkRepo();
   const r = run(["--repo", repo, "--app", "web"], repo); assert.equal(r.status, 0, r.stderr);

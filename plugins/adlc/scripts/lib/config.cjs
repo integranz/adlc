@@ -99,6 +99,7 @@ function derive(config, options, repoRoot) {
       build: buildDefaults(a, repoRoot), upstream_list: upstreams, primary_upstream: upstreams[0] || null };
   });
   return {
+    env: config.environments[0],
     plugin_version: pluginVersion(),
     marketplace: { name: options.distribution.marketplace, repo: options.distribution.repo, plugin: options.distribution.plugin },
     registry_host: registryHost,

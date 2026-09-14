@@ -1,0 +1,11 @@
+output "resource_group_name" { value = data.azurerm_resource_group.env.name }
+output "location" { value = data.azurerm_resource_group.env.location }
+output "acr_login_server" { value = azurerm_container_registry.this.login_server }
+output "acr_id" { value = azurerm_container_registry.this.id }
+output "key_vault_id" { value = azurerm_key_vault.this.id }
+output "key_vault_uri" { value = azurerm_key_vault.this.vault_uri }
+output "identity_id" { value = azurerm_user_assigned_identity.apps.id }
+output "identity_client_id" { value = azurerm_user_assigned_identity.apps.client_id }
+output "identity_principal_id" { value = azurerm_user_assigned_identity.apps.principal_id }
+output "log_analytics_workspace_id" { value = azurerm_log_analytics_workspace.this.id }
+output "log_analytics_customer_id" { value = azurerm_log_analytics_workspace.this.workspace_id }
