@@ -1,3 +1,9 @@
+## [0.7.1](https://github.com/integranz/adlc/compare/v0.7.0...v0.7.1) (2026-09-14)
+
+### Bug Fixes
+
+* **hooks:** resolve the plan file before pipes and redirects in guard-terraform-apply ([0ecf6e2](https://github.com/integranz/adlc/commit/0ecf6e2a7baa4046a5c2c526521f97f990d98957))
+
 ## [0.7.0](https://github.com/integranz/adlc/compare/v0.6.0...v0.7.0) (2026-09-14)
 
 ### Features
