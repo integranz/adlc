@@ -1,3 +1,9 @@
+## [0.6.0](https://github.com/integranz/adlc/compare/v0.5.1...v0.6.0) (2026-09-14)
+
+### Features
+
+* **dockerize:** DHI stack templates, compose, per-app build config and the dockerize skill ([8f6f81c](https://github.com/integranz/adlc/commit/8f6f81c4503e2bc55de21d93469205946f07dce1))
+
 ## [0.5.1](https://github.com/integranz/adlc/compare/v0.5.0...v0.5.1) (2026-09-13)
 
 ### Bug Fixes
