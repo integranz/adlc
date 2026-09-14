@@ -1,3 +1,9 @@
+## [0.7.0](https://github.com/integranz/adlc/compare/v0.6.0...v0.7.0) (2026-09-14)
+
+### Features
+
+* **plan:** Terraform foundation layer templates and the plan skill ([44104ea](https://github.com/integranz/adlc/commit/44104eac56868d7d2215b83eb3bcbbe5eadff722))
+
 ## [0.6.0](https://github.com/integranz/adlc/compare/v0.5.1...v0.6.0) (2026-09-14)
 
 ### Features
