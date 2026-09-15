@@ -1,3 +1,9 @@
+## [0.10.1](https://github.com/integranz/adlc/compare/v0.10.0...v0.10.1) (2026-09-15)
+
+### Bug Fixes
+
+* **verify:** drift means resource changes (outputs-only refresh is confirmed with a note); ignore own evidence files in the clean-tree claim ([2b7b41c](https://github.com/integranz/adlc/commit/2b7b41c7bb43da3497b9a88bf9c1943b15faf941))
+
 ## [0.10.0](https://github.com/integranz/adlc/compare/v0.9.0...v0.10.0) (2026-09-15)
 
 ### Features
