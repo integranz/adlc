@@ -68,7 +68,7 @@ dimensions:
   tracker:
     question: Where is the work tracked?
     options:
-      jira:         { status: implemented, label: Jira Cloud (official Atlassian remote MCP; Standard plan or higher) }
+      jira:         { status: implemented, label: Jira Cloud (Atlassian Rovo MCP Server; Standard plan or higher) }
       asana:        { status: later,       label: Asana }
       azure-devops: { status: later,       label: Azure DevOps Boards }
 

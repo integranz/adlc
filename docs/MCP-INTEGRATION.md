@@ -4,7 +4,7 @@ Status: in progress. Servers are declared in `plugins/adlc/.mcp.json`; the golde
 
 | Server | Transport | Auth | Used by | Write operations |
 |---|---|---|---|---|
-| `atlassian` | HTTP `https://mcp.atlassian.com/v2/mcp` | OAuth 2.1 (`/mcp login` in an interactive session; per user) | `/adlc:ticket` (parent session only) | create/edit/transition/comment on issues; `delete`/`manage` groups stay disabled |
+| `atlassian` = **Atlassian Rovo MCP Server** (Atlassian's official remote MCP; the name "Remote MCP Server" was replaced by "Rovo MCP Server") | HTTP `https://mcp.atlassian.com/v2/mcp` | OAuth 2.1 (`/mcp` login in an interactive session; per user); requires a Standard+ Jira Cloud plan (Premium trial on integranz.atlassian.net) | `/adlc:ticket` (parent session only) | create/edit/transition/comment on issues; `delete`/`manage` groups stay disabled |
 | `github` | HTTP `https://api.githubcopilot.com/mcp/x/actions` (actions toolset) | OAuth (per user) | `/adlc:deploy` (`actions_run_trigger`), `/adlc:verify` and `explore` (`actions_get`, `get_job_logs`) | `run_workflow`, `rerun`, `cancel` — allowed only for the parent; the immutable-tag hook checks `inputs.tag` |
 | `azure` | stdio `npx -y @azure/mcp@latest server start --namespace acr … --read-only` | `DefaultAzureCredential` (`az login`) | `verify`, `explore` | none (`--read-only`); infra mutations go through Terraform under the guard hooks |
 
@@ -14,6 +14,7 @@ Status: in progress. Servers are declared in `plugins/adlc/.mcp.json`; the golde
 - Parent session: writes via the skills that own them (`ticket`, `deploy`).
 
 ## Operational notes
+- **Rovo MCP Server = Atlassian's remote MCP** (support.atlassian.com/atlassian-ai-gateway, checked 2026-09-16): endpoint `https://mcp.atlassian.com/v2/mcp` (`?tools=all` exposes every tool for gateways), OAuth 2.1, optional API-token auth. Each call **consumes Rovo credits** from the organisation's shared pool, with a per-call cap; keep ticket operations to the lifecycle actions and avoid broad JQL searches in loops.
 - First use of `atlassian` and `github` requires an interactive OAuth login; headless runs (Routines, `claude -p`) reuse the stored grant or fail with "needs authorization". Document the login in the target repo's AGENTS.md (done by the template).
 - `azure` warm start is a few seconds, but a cold `npx` download can exceed the MCP startup timeout; pre-warm in cloud environment setup scripts (`npx -y @azure/mcp@latest --version`).
 - Error handling per skill: a missing or unauthorised server is reported with the exact command to fix it; skills never fabricate ticket keys, run ids or resource states.

@@ -26,7 +26,7 @@ No long-lived cloud credential is stored anywhere. GitHub Actions obtains a shor
 
 The three `AZURE_*` values are identifiers, not credentials. Azure/login says "it's better to create a GitHub Action secret" and also shows them as `vars.*`; adlc stores them as secrets so they never appear in logs of a public repo.
 
-Nothing else is stored: `GITHUB_TOKEN` is automatic (workflows request `contents: write` for tags/releases, `id-token: write` for OIDC), Jira is reached through the Atlassian MCP with a per-user OAuth grant (never from CI), and Key Vault secret *values* are set by a human with `az keyvault secret set`, never committed or passed through GitHub.
+Jira is reached through the **Atlassian Rovo MCP Server** (`https://mcp.atlassian.com/v2/mcp`, OAuth 2.1 per user, Standard+ plan); the plugin's `.mcp.json` server key is `atlassian`. Nothing else is stored: `GITHUB_TOKEN` is automatic (workflows request `contents: write` for tags/releases, `id-token: write` for OIDC), Jira is reached through the Atlassian MCP with a per-user OAuth grant (never from CI), and Key Vault secret *values* are set by a human with `az keyvault secret set`, never committed or passed through GitHub.
 
 ## GitHub repository: Settings → Environments
 | Environment | Protection | Purpose |

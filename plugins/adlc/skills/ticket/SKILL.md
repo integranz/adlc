@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: Create, transition or comment on the work item that tracks this repository's delivery in the configured tracker (Jira through the Atlassian remote MCP), with a structured description and evidence links.
+description: Create, transition or comment on the work item that tracks this repository's delivery in the configured tracker (Jira through the Atlassian Rovo MCP Server), with a structured description and evidence links.
 disable-model-invocation: true
 allowed-tools: Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/*), Read, Glob, Grep, Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/validate-config.cjs" *), Bash(git rev-parse *), Bash(git remote *), Bash(gh run list *), Bash(gh run view *)
 ---
@@ -11,7 +11,7 @@ Arguments: `$0` action: `create | start | review | done | comment | show`; `$1` 
 
 ## Preconditions
 1. `.adlc/config.yaml` validates and `options.tracker` is `jira`; read `jira.site_url`, `jira.project_key`, `jira.issue_type`, `jira.transitions`.
-2. The Atlassian MCP server is connected and authorised. Test with `getAccessibleAtlassianResources`: it returns the `cloudId` every other call needs. If it fails: stop and print exactly "Run `/mcp`, authorise `atlassian`, then re-run this command." Never fall back to `curl` with tokens and never fabricate an issue key.
+2. The Atlassian Rovo MCP Server (plugin server key `atlassian`, `https://mcp.atlassian.com/v2/mcp`) is connected and authorised. Test with `getAccessibleAtlassianResources`: it returns the `cloudId` every other call needs. If it fails: stop and print exactly "Run `/mcp`, authorise `atlassian`, then re-run this command." Never fall back to `curl` with tokens and never fabricate an issue key.
 3. Confirm the project exists: `listJiraProjects` (or `searchJiraIssuesUsingJql` with `project = <KEY> ORDER BY created DESC` limited to 1). Unknown project → stop with the key you tried.
 
 ## Actions
