@@ -39,7 +39,7 @@ Create one app registration (for example `sp-<project>-github`) with **two feder
 |---|---|---|
 | `github-main` | `repo:<owner>/<repo>:ref:refs/heads/main` | CI on `main`: `az acr login` + image push |
 | `github-env-dev` | `repo:<owner>/<repo>:environment:dev` | CD job with `environment: dev`: Terraform plan/apply of `infra/app` |
-A job that references an environment presents the environment subject, not the branch subject (Microsoft Learn: "For Jobs tied to an environment: `repo:<Organization/Repository>:environment:<Name>`"). Pull-request builds do not touch Azure, so no `pull_request` credential is needed.
+**Subject prefix**: repositories with GitHub's *immutable subject claims* enabled (observed as the default on `integranz/adlc-demo`, created 2026-09-09: `GET /repos/{owner}/{repo}/actions/oidc/customization/sub` → `use_immutable_subject: true`, `sub_claim_prefix: repo:<owner>@<owner-id>/<repo>@<repo-id>`) present `repo:integranz@326982263/adlc-demo@1362809496:ref:refs/heads/main`, not `repo:integranz/adlc-demo:…`. Entra matches literally, so the setup script reads the prefix from that endpoint (or derives it from the repository ids) and creates the credentials with the exact value. First CI run failed with `AADSTS700213 No matching federated identity record` until this was done. A job that references an environment presents the environment subject, not the branch subject (Microsoft Learn: "For Jobs tied to an environment: `repo:<Organization/Repository>:environment:<Name>`"). Pull-request builds do not touch Azure, so no `pull_request` credential is needed.
 
 ## Azure RBAC for the app registration's service principal (least privilege)
 | Scope | Role | Why |

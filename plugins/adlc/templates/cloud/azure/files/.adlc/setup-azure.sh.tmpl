@@ -68,14 +68,35 @@ fi
 
 # ---- 2. federated credentials ----
 say "2. Federated credentials (issuer $ISSUER, audience $AUDIENCE)"
-<%#eq options.runner "github-actions"%>fed() { # name subject
+<%#eq options.runner "github-actions"%># GitHub's OIDC subject prefix. Repositories with "immutable subject claims" present
+#   repo:<owner>@<owner-id>/<repo>@<repo-id>:...   instead of   repo:<owner>/<repo>:...
+# Entra matches subjects literally, so read the prefix GitHub will actually send.
+SUB_PREFIX="repo:${GH_OWNER}/${GH_REPO}"
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  CUSTOM=$(gh api "repos/${GH_OWNER}/${GH_REPO}/actions/oidc/customization/sub" 2>/dev/null || true)
+  IMMUTABLE=$(printf '%s' "$CUSTOM" | python3 -c 'import json,sys; d=json.load(sys.stdin); print("true" if d.get("use_immutable_subject") else "false")' 2>/dev/null || echo unknown)
+  PREFIX_FROM_GH=$(printf '%s' "$CUSTOM" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("sub_claim_prefix",""))' 2>/dev/null || true)
+  if [ "$IMMUTABLE" = "true" ] && [ -n "$PREFIX_FROM_GH" ]; then SUB_PREFIX="$PREFIX_FROM_GH"; ok "GitHub uses immutable OIDC subjects: prefix $SUB_PREFIX"; else ok "GitHub OIDC subject prefix: $SUB_PREFIX (immutable subjects: $IMMUTABLE)"; fi
+else
+  IDS=$(curl -fsS "https://api.github.com/repos/${GH_OWNER}/${GH_REPO}" 2>/dev/null || true)
+  if [ -n "$IDS" ]; then
+    SUB_PREFIX_IMMUTABLE=$(printf '%s' "$IDS" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f"repo:{d[\"owner\"][\"login\"]}@{d[\"owner\"][\"id\"]}/{d[\"name\"]}@{d[\"id\"]}")' 2>/dev/null || true)
+    echo "  WARN  gh not available: cannot read the repository's OIDC subject setting. Adding credentials for both the classic prefix and the immutable one ($SUB_PREFIX_IMMUTABLE)." >&2
+  fi
+fi
+fed() { # name subject
   local name="$1" subject="$2"
   if [ -n "${APP_OBJ:-}" ] && az ad app federated-credential list --id "$APP_OBJ" --query "[?subject=='$subject'] | length(@)" -o tsv 2>/dev/null | grep -q '^[1-9]'; then ok "$name: $subject"; return; fi
   todo "add $name: $subject"
   run az ad app federated-credential create --id "${APP_OBJ:-<app-object-id>}" --parameters "{\"name\":\"$name\",\"issuer\":\"$ISSUER\",\"subject\":\"$subject\",\"audiences\":[\"$AUDIENCE\"]}"
 }
-fed "github-${GH_BRANCH//\//-}" "repo:${GH_OWNER}/${GH_REPO}:ref:refs/heads/${GH_BRANCH}"
-fed "github-env-${GH_ENV}"      "repo:${GH_OWNER}/${GH_REPO}:environment:${GH_ENV}"
+SUFFIX=""; [ "$SUB_PREFIX" != "repo:${GH_OWNER}/${GH_REPO}" ] && SUFFIX="-immutable"
+fed "github-${GH_BRANCH//\//-}${SUFFIX}" "${SUB_PREFIX}:ref:refs/heads/${GH_BRANCH}"
+fed "github-env-${GH_ENV}${SUFFIX}"      "${SUB_PREFIX}:environment:${GH_ENV}"
+if [ -n "${SUB_PREFIX_IMMUTABLE:-}" ] && [ "$SUB_PREFIX_IMMUTABLE" != "$SUB_PREFIX" ]; then
+  fed "github-${GH_BRANCH//\//-}-immutable" "${SUB_PREFIX_IMMUTABLE}:ref:refs/heads/${GH_BRANCH}"
+  fed "github-env-${GH_ENV}-immutable"       "${SUB_PREFIX_IMMUTABLE}:environment:${GH_ENV}"
+fi
 <%/eq%>
 # ---- 3. terraform state storage (Entra-only auth) ----
 say "3. Terraform state: $STATE_RG / $STATE_SA / $STATE_CONTAINER"
