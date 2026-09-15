@@ -1,3 +1,9 @@
+## [0.10.0](https://github.com/integranz/adlc/compare/v0.9.0...v0.10.0) (2026-09-15)
+
+### Features
+
+* **verify:** deterministic verification script, verify and ticket skills; stable resource tags ([a50437e](https://github.com/integranz/adlc/commit/a50437efae836c557efa4dbfe30d013540902332))
+
 ## [0.9.0](https://github.com/integranz/adlc/compare/v0.8.2...v0.9.0) (2026-09-15)
 
 ### Features
