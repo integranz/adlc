@@ -97,6 +97,11 @@ function derive(config, options, repoRoot) {
       url_local: `http://${n}:${byName[n]?.port || 8080}` }));
     return { ...a, image: `${registryHost}/${a.image_repository}`, image_local: `${config.project.name}/${a.name}`, local_port: 8080 + i,
       is_node: a.stack === "react-vite" || a.stack === "node-ts-api", is_dotnet: a.stack.startsWith("dotnet"),
+      external: a.kind !== "worker", has_ingress: a.kind !== "worker",
+      secrets: a.secrets || [], env_list: Object.entries(a.env || {}).map(([k, v]) => ({ name: k, value: v })),
+      cpu: (a.resources && a.resources.cpu) || 0.25, memory: (a.resources && a.resources.memory) || "0.5Gi",
+      min_replicas: (a.scale && a.scale.min !== undefined) ? a.scale.min : 1, max_replicas: (a.scale && a.scale.max) || 2,
+      upstream_names: a.upstreams || [],
       build: buildDefaults(a, repoRoot), upstream_list: upstreams, primary_upstream: upstreams[0] || null };
   });
   return {

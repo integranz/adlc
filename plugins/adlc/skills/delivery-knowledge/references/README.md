@@ -9,4 +9,4 @@ One file per implemented option or concern:
 - `runner-github-actions.md`
 - `versioning-nbgv.md`
 - `versioning-semantic-release.md`
-- pending: `compute-aca.md`
+- `compute-aca.md`

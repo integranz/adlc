@@ -129,8 +129,28 @@ test("foundation layer renders and passes terraform fmt/validate", () => {
   const val = spawnSync("terraform", ["-chdir=" + dir, "validate", "-no-color"], { encoding: "utf8" }); assert.equal(val.status, 0, `terraform validate: ${val.stdout}${val.stderr}`);
 });
 
+test("app layer (compute=aca) renders and passes terraform fmt/validate", () => {
+  const repo = mkRepo(c => { c.apps[0].secrets = [{ name: "db-password", env: "DB_PASSWORD" }]; c.apps[0].env = { ASPNETCORE_ENVIRONMENT: "Production" }; });
+  const r = run(["--repo", repo], repo); assert.equal(r.status, 0, r.stderr);
+  const dir = path.join(repo, "infra", "app");
+  for (const f of ["versions.tf", "providers.tf", "variables.tf", "locals.tf", "data.tf", "main.tf", "outputs.tf", "README.md"]) assert.ok(fs.existsSync(path.join(dir, f)), `missing infra/app/${f}`);
+  const main = read(repo, "infra/app/main.tf"), out = read(repo, "infra/app/outputs.tf");
+  assert.doesNotMatch(main + out + read(repo, "infra/app/versions.tf"), /<%/);
+  assert.match(main, /resource "azurerm_container_app" "api"/); assert.match(main, /resource "azurerm_container_app" "web"/);
+  assert.match(main, /name\s+= "api"/, "container app must be named after the app (nginx proxies to http://api)");
+  assert.match(main, /key_vault_secret_id = "\$\{data\.azurerm_key_vault\.this\.vault_uri\}secrets\/db-password"/);
+  assert.match(main, /secret_name = "db-password"/); assert.match(main, /name\s+= "ASPNETCORE_ENVIRONMENT"/);
+  assert.match(main, /depends_on = \[azurerm_container_app\.api\]/, "web must depend on api");
+  assert.match(main, /path\s+= "\/health"/); assert.match(main, /logs_destination\s+= "log-analytics"/);
+  assert.match(out, /output "web_url"/); assert.match(read(repo, "infra/app/versions.tf"), /key\s+= "adlc-demo\/app\/dev\.tfstate"/);
+  const tf = spawnSync("terraform", ["version"], { encoding: "utf8" }); if (tf.status !== 0) return;
+  const fmt = spawnSync("terraform", ["-chdir=" + dir, "fmt", "-check", "-recursive"], { encoding: "utf8" }); assert.equal(fmt.status, 0, `terraform fmt -check: ${fmt.stdout}${fmt.stderr}`);
+  const init = spawnSync("terraform", ["-chdir=" + dir, "init", "-backend=false", "-input=false"], { encoding: "utf8", timeout: 240000 }); if (init.status !== 0) return;
+  const val = spawnSync("terraform", ["-chdir=" + dir, "validate", "-no-color"], { encoding: "utf8" }); assert.equal(val.status, 0, `terraform validate: ${val.stdout}${val.stderr}`);
+});
+
 test("ci.yml renders for nbgv and for semantic-release and parses as YAML", () => {
-  for (const [versioning, must, mustNot] of [["nbgv", ["dotnet/nbgv@v0.5.2", "nbgv tag", "SemVer2"], ["semantic-release"]], ["semantic-release", ["npx semantic-release --dry-run", "npx semantic-release"], ["dotnet/nbgv"]]]) {
+  for (const [versioning, must, mustNot] of [["nbgv", ["dotnet/nbgv@v0.5.2", "nbgv tag", "SemVer2", "git ls-remote --exit-code --tags"], ["semantic-release"]], ["semantic-release", ["npx semantic-release --dry-run", "npx semantic-release"], ["dotnet/nbgv"]]]) {
     const repo = mkRepo(c => { c.options.versioning = versioning; });
     const r = run(["--repo", repo], repo); assert.equal(r.status, 0, r.stderr);
     const ci = read(repo, ".github/workflows/ci.yml");
@@ -139,10 +159,20 @@ test("ci.yml renders for nbgv and for semantic-release and parses as YAML", () =
     assert.deepEqual(Object.keys(doc.jobs), ["version", "test", "images", "release"]);
     for (const s of must) assert.ok(ci.includes(s), `${versioning}: ci.yml missing ${s}`);
     for (const s of mustNot) assert.ok(!ci.includes(s), `${versioning}: ci.yml must not contain ${s}`);
-    for (const s of ["registry: dhi.io", "azure/login@v3", "az acr login --name acradlcdemo", "provenance: false", "acradlcdemo.azurecr.io", "dotnet test apps/api", "npm ci --prefix apps/web --no-audit --no-fund", "npm --prefix apps/web test", "apps/web/package-lock.json", "- app: api", "- app: web", "id-token: write"]) assert.ok(ci.includes(s), `ci.yml missing ${s}`);
+    for (const s of ["registry: dhi.io", "azure/login@v3", "az acr login --name acradlcdemo", "provenance: false", "acradlcdemo.azurecr.io", "Refuse to overwrite an existing tag", "dotnet test apps/api", "npm ci --prefix apps/web --no-audit --no-fund", "npm --prefix apps/web test", "apps/web/package-lock.json", "- app: api", "- app: web", "id-token: write"]) assert.ok(ci.includes(s), `ci.yml missing ${s}`);
     assert.doesNotMatch(ci, /:latest/, "no mutable tags in ci.yml");
     if (spawnSync("actionlint", ["--version"]).status === 0) { const al = spawnSync("actionlint", [path.join(repo, ".github/workflows/ci.yml")], { encoding: "utf8" }); assert.equal(al.status, 0, al.stdout + al.stderr); }
   }
+});
+
+test("cd.yml renders with plan and gated apply jobs and parses as YAML", () => {
+  const repo = mkRepo(); const r = run(["--repo", repo], repo); assert.equal(r.status, 0, r.stderr);
+  const cd = read(repo, ".github/workflows/cd.yml"); assert.doesNotMatch(cd, /<%/);
+  const doc = yaml.load(cd); assert.deepEqual(Object.keys(doc.jobs), ["plan", "apply"]);
+  assert.equal(doc.jobs.apply.environment.name, "${{ inputs.environment }}"); assert.deepEqual(doc.jobs.apply.needs, "plan");
+  assert.deepEqual(doc.on.workflow_dispatch.inputs.environment.options, ["dev"]);
+  for (const s of ["az acr manifest show -r acradlcdemo -n \"adlc-demo/api:$IMAGE_TAG\"", "terraform plan -input=false -no-color -var \"image_tag=$IMAGE_TAG\" -out=tfplan", "terraform apply -input=false -no-color tfplan", "ARM_USE_OIDC", "ARM_USE_AZUREAD", "deploy-evidence-"]) assert.ok(cd.includes(s), `cd.yml missing ${s}`);
+  assert.doesNotMatch(cd, /-auto-approve/);
 });
 
 test("--app renders only that app's stack templates", () => {

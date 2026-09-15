@@ -339,6 +339,74 @@
                 "description": "react-vite: nginx runtime image tag (default: 1.29)"
               }
             }
+          },
+          "secrets": {
+            "type": "array",
+            "description": "Key Vault secrets exposed to the app as environment variables (values are set out of band by a human).",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "env"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]([a-z0-9-]{0,125}[a-z0-9])?$",
+                  "description": "Key Vault secret name"
+                },
+                "env": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9_]*$",
+                  "description": "Environment variable name in the container"
+                }
+              }
+            }
+          },
+          "env": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "description": "Non-secret environment variables"
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cpu": {
+                "type": "number",
+                "description": "vCPU (Consumption plan combos: 0.25/0.5Gi, 0.5/1Gi, 0.75/1.5Gi, 1/2Gi, ...)",
+                "default": 0.25
+              },
+              "memory": {
+                "type": "string",
+                "pattern": "^[0-9.]+Gi$",
+                "default": "0.5Gi"
+              }
+            }
+          },
+          "scale": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "min": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 300,
+                "default": 1
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 300,
+                "default": 2
+              }
+            }
           }
         },
         "allOf": [

@@ -116,6 +116,13 @@ jobs:
 <%/eq%><%#eq options.registry "acr"%>      - name: Log in to the container registry
         if: env.IS_RELEASE == 'true'
         run: az acr login --name <% azure.acr_name %>
+      - name: Refuse to overwrite an existing tag (tags are immutable)
+        if: env.IS_RELEASE == 'true'
+        run: |
+          if az acr manifest show -r <% azure.acr_name %> -n "${{ matrix.repository }}:${{ needs.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "::error::${{ matrix.repository }}:${{ needs.version.outputs.version }} already exists in <% azure.acr_name %>. Tags are immutable: bump the version (new commit) instead of re-running a release build."
+            exit 1
+          fi
 <%/eq%>      - name: Build${{ env.IS_RELEASE == 'true' && ' and push' || '' }} ${{ matrix.app }}
         id: build
         uses: docker/build-push-action@v7
@@ -178,8 +185,12 @@ jobs:
         run: |
           dotnet tool install -g nbgv >/dev/null
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          nbgv tag
-          git push origin "v${{ needs.version.outputs.version }}"
+          if git ls-remote --exit-code --tags origin "v${{ needs.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "tag v${{ needs.version.outputs.version }} already exists; nothing to do"
+          else
+            nbgv tag
+            git push origin "v${{ needs.version.outputs.version }}"
+          fi
 <%/eq%><%#eq options.versioning "semantic-release"%>      - uses: actions/setup-node@v7
         with:
           node-version: 22
