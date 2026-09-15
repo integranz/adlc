@@ -86,12 +86,27 @@ async function http(url, { timeout = 20000 } = {}) {
   // ---- 4. No drift (read-only plan) ----
   if (have("terraform") && fs.existsSync(path.join(repo, "infra", "app"))) {
     const init = sh("terraform", ["-chdir=infra/app", "init", "-input=false", "-no-color"], { timeout: 240000, env: { TF_IN_AUTOMATION: "1" } });
-    if (init.ok) { const p = sh("terraform", ["-chdir=infra/app", "plan", "-input=false", "-no-color", "-detailed-exitcode", "-var", `image_tag=${tag}`, "-lock=false"], { timeout: 300000, env: { TF_IN_AUTOMATION: "1" } }); record("App layer has no drift (terraform plan -detailed-exitcode)", p.status === 0 ? "CONFIRMED" : p.status === 2 ? "REFUTED" : "UNVERIFIABLE", p.status === 0 ? "exit 0: No changes" : p.status === 2 ? (p.out.match(/^Plan:.*$/m) || ["changes pending"])[0] : (p.err.split("\n")[0] || "plan error")); }
+    if (init.ok) {
+      const planFile = path.join(os.tmpdir(), `adlc-verify-${process.pid}.plan`);
+      const p = sh("terraform", ["-chdir=infra/app", "plan", "-input=false", "-no-color", "-detailed-exitcode", "-lock=false", "-var", `image_tag=${tag}`, `-out=${planFile}`], { timeout: 300000, env: { TF_IN_AUTOMATION: "1" } });
+      if (p.status === 0) record("App layer has no drift (terraform plan -detailed-exitcode)", "CONFIRMED", "exit 0: No changes");
+      else if (p.status === 2) {
+        // exit 2 covers output-only refreshes too; drift means a resource would change
+        const show = sh("terraform", ["-chdir=infra/app", "show", "-json", planFile], { timeout: 120000, env: { TF_IN_AUTOMATION: "1" } });
+        let resChanges = null, outChanges = [];
+        try { const j = JSON.parse(show.out); resChanges = (j.resource_changes || []).filter(r => r.change.actions.join("/") !== "no-op").map(r => `${r.address} (${r.change.actions.join("/")})`); outChanges = Object.entries(j.output_changes || {}).filter(([, v]) => v.actions.join("/") !== "no-op").map(([k]) => k); } catch {}
+        if (resChanges && resChanges.length === 0) record("App layer has no drift (no resource changes; outputs refresh only)", "CONFIRMED", `plan exit 2 with 0 resource changes; outputs to refresh: ${outChanges.join(", ") || "none listed"}`);
+        else record("App layer has no drift (terraform plan -detailed-exitcode)", "REFUTED", resChanges ? `resource changes pending: ${resChanges.join("; ")}` : (p.out.match(/^Plan:.*$/m) || ["changes pending"])[0]);
+      } else record("App layer has no drift", "UNVERIFIABLE", p.err.split("\n")[0] || "plan error");
+      try { fs.unlinkSync(planFile); } catch {}
+    }
     else record("App layer has no drift", "UNVERIFIABLE", `terraform init failed: ${init.err.split("\n").find(l => /Error|error/.test(l)) || init.err.slice(0, 120)}`);
   }
 
   // ---- 5. Repo hygiene ----
-  const st = sh("git", ["status", "--porcelain"]); record("Working tree clean (no state/plan/secret files staged)", st.ok && st.out === "" ? "CONFIRMED" : "REFUTED", st.out ? st.out.split("\n").slice(0, 3).join("; ") : "git status --porcelain → empty");
+  const st = sh("git", ["status", "--porcelain"]);
+  const dirty = st.out.split("\n").filter(l => l.trim() && !/\s\.adlc\/evidence\//.test(l)); // the verifier's own evidence files are committed afterwards
+  record("Working tree clean apart from .adlc/evidence (no state/plan/secret files staged)", st.ok && dirty.length === 0 ? "CONFIRMED" : "REFUTED", dirty.length ? dirty.slice(0, 3).join("; ") : "git status --porcelain → nothing outside .adlc/evidence");
   const tracked = sh("git", ["ls-files"]); const bad = tracked.out.split("\n").filter(f => /(^|\/)(\.env(\..*)?|.*\.tfstate(\..*)?|.*\.tfvars|tfplan.*|.*\.pem|.*\.key)$/.test(f) && !/\.example$/.test(f));
   record("No state, plan, tfvars or key files are tracked in git", bad.length === 0 ? "CONFIRMED" : "REFUTED", bad.length ? bad.join(", ") : "git ls-files → none matched");
 
