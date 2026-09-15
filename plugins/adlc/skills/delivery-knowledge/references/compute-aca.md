@@ -17,7 +17,7 @@ Verified 2026-09-14/15 against learn.microsoft.com (connect-apps, ingress, secre
 ```
 az containerapp show -n <app> -g <rg> --query properties.configuration.ingress.fqdn -o tsv
 az containerapp revision list -n <app> -g <rg> --query "[?properties.active].{name:name,image:properties.template.containers[0].image,traffic:properties.trafficWeight}" -o table
-az acr manifest show -r <acr> -n <repo>:<tag> --query digest -o tsv                  # registry digest for the tag
+az acr repository show -n <acr> --image <repo>:<tag> --query digest -o tsv           # registry digest for the tag (manifest show --query digest returns nothing in az 2.75)
 curl -fsS https://<fqdn>/health | jq -r .version                                      # must equal <tag>
 terraform -chdir=infra/app plan -detailed-exitcode -var image_tag=<tag>              # exit 0 = no drift
 ```

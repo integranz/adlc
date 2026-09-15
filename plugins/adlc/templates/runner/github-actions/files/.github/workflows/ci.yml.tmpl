@@ -119,7 +119,7 @@ jobs:
       - name: Refuse to overwrite an existing tag (tags are immutable)
         if: env.IS_RELEASE == 'true'
         run: |
-          if az acr manifest show -r <% azure.acr_name %> -n "${{ matrix.repository }}:${{ needs.version.outputs.version }}" >/dev/null 2>&1; then
+          if [ -n "$(az acr repository show -n <% azure.acr_name %> --image "${{ matrix.repository }}:${{ needs.version.outputs.version }}" --query digest -o tsv 2>/dev/null)" ]; then
             echo "::error::${{ matrix.repository }}:${{ needs.version.outputs.version }} already exists in <% azure.acr_name %>. Tags are immutable: bump the version (new commit) instead of re-running a release build."
             exit 1
           fi

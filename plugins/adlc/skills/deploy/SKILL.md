@@ -2,7 +2,7 @@
 name: deploy
 description: Trigger the CD workflow for one immutable image tag and one environment, wait for the human approval on the GitHub environment, monitor the run to completion and report the deployed URLs.
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/validate-config.cjs" *), Bash(gh run list *), Bash(gh run view *), Bash(gh run watch *), Bash(gh run download *), Bash(gh workflow run *), Bash(gh api repos/*), Bash(az acr manifest show *), Bash(az acr repository show-tags *), Bash(az account show *), Bash(git rev-parse *), Bash(curl -fsS *)
+allowed-tools: Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/*), Read, Glob, Grep, Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/validate-config.cjs" *), Bash(gh run list *), Bash(gh run view *), Bash(gh run watch *), Bash(gh run download *), Bash(gh workflow run *), Bash(gh api repos/*), Bash(az acr repository show *), Bash(az acr repository show-tags *), Bash(az account show *), Bash(git rev-parse *), Bash(curl -fsS *)
 ---
 
 # /adlc:deploy — deploy one tag to one environment
@@ -16,7 +16,7 @@ Arguments: `$0` image tag (semver from CI). Default: the version of the latest s
 ## Step 1 — Resolve the tag
 - If `$0` is given: it must match `^[0-9]+\.[0-9]+\.[0-9]+` and must not be `latest` or a branch name (the guard hook enforces this too).
 - Otherwise: `gh run list --workflow ci --branch <default_branch> --status success --limit 1 --json databaseId` → `gh api repos/<owner>/<repo>/actions/runs/<id>/artifacts --jq '.artifacts[].name'` → the `release-manifest-<version>` artifact gives the version. Tell the user which tag was chosen and from which run.
-- Confirm every app image exists: `az acr manifest show -r <acr> -n <image_repository>:<tag> --query digest -o tsv` for each app in the config. Missing image → stop; suggest `/adlc:plan` is not the fix, the CI release is.
+- Confirm every app image exists: `az acr repository show -n <acr> --image <image_repository>:<tag> --query digest -o tsv` for each app in the config (a non-empty digest; `acr manifest show --query digest` prints nothing in az 2.75). Missing image → stop; suggest `/adlc:plan` is not the fix, the CI release is.
 
 ## Step 2 — Trigger CD
 Preferred: GitHub MCP `actions_run_trigger` with `method: run_workflow`, `workflow_id: cd.yml`, `ref: <default_branch>`, `inputs: { tag, environment }`. Fallback: `gh workflow run cd.yml -R <owner>/<repo> -f tag=<tag> -f environment=<env>`. The guard hook rejects a dispatch without an immutable `tag` input. Find the run id: `gh run list --workflow cd --limit 1 --json databaseId,url`.

@@ -15,6 +15,6 @@ locals {
     environment = local.environment
     managed_by  = "terraform"
     layer       = "app"
-    generator   = "adlc <% derived.plugin_version %>"
+    generator   = "adlc"
   }
 }

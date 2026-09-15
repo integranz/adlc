@@ -56,7 +56,9 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 <%#eq options.registry "acr"%>      - name: Every app image must exist for this tag
         run: |
-<%#each derived.apps%>          az acr manifest show -r <% azure.acr_name %> -n "<% image_repository %>:$IMAGE_TAG" --query digest -o tsv | sed 's/^/  <% name %>: /' || { echo "::error::<% image_repository %>:$IMAGE_TAG not found in <% azure.acr_name %>"; exit 1; }
+<%#each derived.apps%>          d=$(az acr repository show -n <% azure.acr_name %> --image "<% image_repository %>:$IMAGE_TAG" --query digest -o tsv 2>/dev/null || true)
+          [ -n "$d" ] || { echo "::error::<% image_repository %>:$IMAGE_TAG not found in <% azure.acr_name %>"; exit 1; }
+          echo "  <% name %>: $d"
 <%/each%><%/eq%>      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false

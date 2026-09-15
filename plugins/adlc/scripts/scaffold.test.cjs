@@ -171,7 +171,7 @@ test("cd.yml renders with plan and gated apply jobs and parses as YAML", () => {
   const doc = yaml.load(cd); assert.deepEqual(Object.keys(doc.jobs), ["plan", "apply"]);
   assert.equal(doc.jobs.apply.environment.name, "${{ inputs.environment }}"); assert.deepEqual(doc.jobs.apply.needs, "plan");
   assert.deepEqual(doc.on.workflow_dispatch.inputs.environment.options, ["dev"]);
-  for (const s of ["az acr manifest show -r acradlcdemo -n \"adlc-demo/api:$IMAGE_TAG\"", "terraform plan -input=false -no-color -var \"image_tag=$IMAGE_TAG\" -out=tfplan", "terraform apply -input=false -no-color tfplan", "ARM_USE_OIDC", "ARM_USE_AZUREAD", "deploy-evidence-"]) assert.ok(cd.includes(s), `cd.yml missing ${s}`);
+  for (const s of ["az acr repository show -n acradlcdemo --image \"adlc-demo/api:$IMAGE_TAG\"", "terraform plan -input=false -no-color -var \"image_tag=$IMAGE_TAG\" -out=tfplan", "terraform apply -input=false -no-color tfplan", "ARM_USE_OIDC", "ARM_USE_AZUREAD", "deploy-evidence-"]) assert.ok(cd.includes(s), `cd.yml missing ${s}`);
   assert.doesNotMatch(cd, /-auto-approve/);
 });
 

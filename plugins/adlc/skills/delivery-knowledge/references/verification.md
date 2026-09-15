@@ -16,7 +16,7 @@ Every claim gets one command and a literal comparison. CONFIRMED needs a positiv
 | Claim | Command |
 |---|---|
 | Tag exists | `az acr repository show-tags -n ACR --repository REPO -o tsv \| grep -x TAG` |
-| Digest of tag | `az acr repository show -n ACR --image REPO:TAG --query digest -o tsv` |
+| Digest of tag | `az acr repository show -n ACR --image REPO:TAG --query digest -o tsv` (not `acr manifest show --query digest`: empty output in az 2.75) |
 
 ## Deployment (after CD) — filled in on the compute day
 | Claim | Command |
