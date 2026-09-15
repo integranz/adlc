@@ -1,3 +1,9 @@
+## [0.8.1](https://github.com/integranz/adlc/compare/v0.8.0...v0.8.1) (2026-09-15)
+
+### Bug Fixes
+
+* **ci:** install Node dependencies (npm ci) per app before running tests ([c854226](https://github.com/integranz/adlc/commit/c8542267103af9f82f69bc8ef0588062b9ab2925))
+
 ## [0.8.0](https://github.com/integranz/adlc/compare/v0.7.1...v0.8.0) (2026-09-15)
 
 ### Features
