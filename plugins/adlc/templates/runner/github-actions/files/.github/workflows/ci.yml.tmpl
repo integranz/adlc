@@ -76,7 +76,12 @@ jobs:
 <%/if%><%#if derived.has_node%>      - uses: actions/setup-node@v7
         with:
           node-version: 22
-<%/if%><%#each derived.apps%><%#if test_command%>      - name: test <% name %>
+          cache: npm
+          cache-dependency-path: |
+<%#each derived.apps%><%#if is_node%>            <% path %>/package-lock.json
+<%/if%><%/each%><%/if%><%#each derived.apps%><%#if is_node%>      - name: install <% name %> dependencies
+        run: npm ci --prefix <% path %> --no-audit --no-fund
+<%/if%><%/each%><%#each derived.apps%><%#if test_command%>      - name: test <% name %>
         run: <% test_command %>
 <%/if%><%/each%>
   images:

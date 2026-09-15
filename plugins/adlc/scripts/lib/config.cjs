@@ -96,6 +96,7 @@ function derive(config, options, repoRoot) {
       url_cloud: config.options.compute === "aca" ? `http://${n}` : `http://${n}:${byName[n]?.port || 8080}`,
       url_local: `http://${n}:${byName[n]?.port || 8080}` }));
     return { ...a, image: `${registryHost}/${a.image_repository}`, image_local: `${config.project.name}/${a.name}`, local_port: 8080 + i,
+      is_node: a.stack === "react-vite" || a.stack === "node-ts-api", is_dotnet: a.stack.startsWith("dotnet"),
       build: buildDefaults(a, repoRoot), upstream_list: upstreams, primary_upstream: upstreams[0] || null };
   });
   return {
