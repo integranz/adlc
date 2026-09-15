@@ -1,3 +1,9 @@
+## [0.8.2](https://github.com/integranz/adlc/compare/v0.8.1...v0.8.2) (2026-09-15)
+
+### Bug Fixes
+
+* **setup-azure:** read GitHub's OIDC subject prefix (immutable subject claims) before creating federated credentials ([d359fee](https://github.com/integranz/adlc/commit/d359feed45a82c7f85bd89af3a5379cbad4cd53d))
+
 ## [0.8.1](https://github.com/integranz/adlc/compare/v0.8.0...v0.8.1) (2026-09-15)
 
 ### Bug Fixes
