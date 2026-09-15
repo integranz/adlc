@@ -1,3 +1,9 @@
+## [0.9.0](https://github.com/integranz/adlc/compare/v0.8.2...v0.9.0) (2026-09-15)
+
+### Features
+
+* **deploy:** Container Apps app layer, gated CD workflow, deploy skill, immutable-tag guard in CI ([f05ee2d](https://github.com/integranz/adlc/commit/f05ee2db66a1f9638d1773a0427c933082fe1626))
+
 ## [0.8.2](https://github.com/integranz/adlc/compare/v0.8.1...v0.8.2) (2026-09-15)
 
 ### Bug Fixes
