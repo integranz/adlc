@@ -18,6 +18,12 @@ Status: in progress. Servers are declared in `plugins/adlc/.mcp.json`; the golde
 - `azure` warm start is a few seconds, but a cold `npx` download can exceed the MCP startup timeout; pre-warm in cloud environment setup scripts (`npx -y @azure/mcp@latest --version`).
 - Error handling per skill: a missing or unauthorised server is reported with the exact command to fix it; skills never fabricate ticket keys, run ids or resource states.
 
+## Golden path procedure (goal 5, scheduled with the user)
+1. In `adlc-demo`, start an interactive session with the plugin: `claude --plugin-dir ~/personal/adlc/plugins/adlc` (or the installed plugin), accept the folder trust prompt.
+2. `/mcp` → select `atlassian` → complete the OAuth login for `integranz.atlassian.net` (the plugin's server URL is the v2 endpoint; existing v1 grants do not apply). Optionally authorise `github` the same way.
+3. `/adlc:ticket create` → expect a `DEVOPS-<n>` key read back from Jira, then `/adlc:ticket start DEVOPS-<n>`, `/adlc:ticket review DEVOPS-<n> --evidence .adlc/evidence/<tag>.md`, `/adlc:ticket done DEVOPS-<n> --evidence .adlc/evidence/<tag>.md`.
+4. Record the issue URL and the four transitions below.
+
 ## Evidence (to be completed)
 - [ ] Golden path: `/adlc:ticket create` → `start` → `review` → `done` on `DEVOPS` in a clean workspace, with issue links.
 - [ ] `/adlc:deploy` triggering `cd.yml` through `actions_run_trigger` and polling to completion.
