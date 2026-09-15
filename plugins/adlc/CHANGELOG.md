@@ -1,3 +1,9 @@
+## [0.8.0](https://github.com/integranz/adlc/compare/v0.7.1...v0.8.0) (2026-09-15)
+
+### Features
+
+* **ci:** GitHub Actions CI template with nbgv and semantic-release variants ([e7803e0](https://github.com/integranz/adlc/commit/e7803e0382b3e927f8218c425fcc49bfd06f010c))
+
 ## [0.7.1](https://github.com/integranz/adlc/compare/v0.7.0...v0.7.1) (2026-09-14)
 
 ### Bug Fixes
