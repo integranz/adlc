@@ -105,6 +105,8 @@ function derive(config, options, repoRoot) {
     registry_host: registryHost,
     apps,
     has_frontend: apps.some(a => a.kind === "frontend"),
+    has_dotnet: apps.some(a => a.stack.startsWith("dotnet")),
+    has_node: apps.some(a => a.stack === "react-vite" || a.stack === "node-ts-api"),
     has_worker: apps.some(a => a.kind === "worker"),
     option_labels: Object.fromEntries(Object.entries(config.options).map(([dim, v]) => [dim, options.dimensions[dim].options[v]?.label || v])),
     option_rows: Object.entries(config.options).map(([dim, v]) => ({ dimension: dim, option: v, label: options.dimensions[dim].options[v]?.label || v, status: options.dimensions[dim].options[v]?.status || "unknown" })),

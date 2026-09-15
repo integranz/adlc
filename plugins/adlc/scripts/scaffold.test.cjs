@@ -129,6 +129,22 @@ test("foundation layer renders and passes terraform fmt/validate", () => {
   const val = spawnSync("terraform", ["-chdir=" + dir, "validate", "-no-color"], { encoding: "utf8" }); assert.equal(val.status, 0, `terraform validate: ${val.stdout}${val.stderr}`);
 });
 
+test("ci.yml renders for nbgv and for semantic-release and parses as YAML", () => {
+  for (const [versioning, must, mustNot] of [["nbgv", ["dotnet/nbgv@v0.5.2", "nbgv tag", "SemVer2"], ["semantic-release"]], ["semantic-release", ["npx semantic-release --dry-run", "npx semantic-release"], ["dotnet/nbgv"]]]) {
+    const repo = mkRepo(c => { c.options.versioning = versioning; });
+    const r = run(["--repo", repo], repo); assert.equal(r.status, 0, r.stderr);
+    const ci = read(repo, ".github/workflows/ci.yml");
+    assert.doesNotMatch(ci, /<%/, "unrendered placeholder in ci.yml");
+    const doc = yaml.load(ci); // must parse
+    assert.deepEqual(Object.keys(doc.jobs), ["version", "test", "images", "release"]);
+    for (const s of must) assert.ok(ci.includes(s), `${versioning}: ci.yml missing ${s}`);
+    for (const s of mustNot) assert.ok(!ci.includes(s), `${versioning}: ci.yml must not contain ${s}`);
+    for (const s of ["registry: dhi.io", "azure/login@v3", "az acr login --name acradlcdemo", "provenance: false", "acradlcdemo.azurecr.io", "dotnet test apps/api", "npm --prefix apps/web test", "- app: api", "- app: web", "id-token: write"]) assert.ok(ci.includes(s), `ci.yml missing ${s}`);
+    assert.doesNotMatch(ci, /:latest/, "no mutable tags in ci.yml");
+    if (spawnSync("actionlint", ["--version"]).status === 0) { const al = spawnSync("actionlint", [path.join(repo, ".github/workflows/ci.yml")], { encoding: "utf8" }); assert.equal(al.status, 0, al.stdout + al.stderr); }
+  }
+});
+
 test("--app renders only that app's stack templates", () => {
   const repo = mkRepo();
   const r = run(["--repo", repo, "--app", "web"], repo); assert.equal(r.status, 0, r.stderr);

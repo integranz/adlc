@@ -6,4 +6,7 @@ One file per implemented option or concern:
 - `verification.md`
 - `cloud-azure-foundation.md`
 - `secret-store-azure-key-vault.md`
-- pending: `compute-aca.md`, `versioning-nbgv.md`, `versioning-semantic-release.md`, `runner-github-actions.md`
+- `runner-github-actions.md`
+- `versioning-nbgv.md`
+- `versioning-semantic-release.md`
+- pending: `compute-aca.md`
