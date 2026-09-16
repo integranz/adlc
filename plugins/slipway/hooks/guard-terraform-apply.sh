@@ -25,6 +25,7 @@ printf '%s' "$cmd" | grep -Eq -- '-destroy([[:space:]]|$)' && deny "terraform ap
 dir="$cwd"; rest="$cmd"
 while printf '%s' "$rest" | grep -Eq '^(cd|pushd)[[:space:]]+[^;&|]+[[:space:]]*(&&|;)'; do
   target="$(printf '%s' "$rest" | sed -E 's/^(cd|pushd)[[:space:]]+([^;&|]+)[[:space:]]*(&&|;).*/\2/' | sed -E 's/^["'"'"']//; s/["'"'"'][[:space:]]*$//; s/[[:space:]]+$//')"
+  # shellcheck disable=SC2088  # these are case patterns matching a literal leading tilde, not expansions
   case "$target" in /*) dir="$target";; "~"|"~/"*) dir="$HOME${target#\~}";; *) dir="$dir/$target";; esac
   rest="$(printf '%s' "$rest" | sed -E 's/^(cd|pushd)[[:space:]]+[^;&|]+[[:space:]]*(&&|;)[[:space:]]*//')"
 done
