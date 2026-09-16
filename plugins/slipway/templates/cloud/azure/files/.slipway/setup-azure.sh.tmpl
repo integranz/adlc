@@ -147,9 +147,9 @@ else echo "  WARN  you hold neither Owner nor User Access Administrator over $RG
 assign "${SP_ID:-}" ServicePrincipal "Contributor"                   "$RG_SCOPE"        "sp"
 assign "${SP_ID:-}" ServicePrincipal "Storage Blob Data Contributor" "$CONTAINER_SCOPE" "sp"
 # state container needs the data-plane role above; create it last
-if $APPLY; then
-  if az storage container show -n "$STATE_CONTAINER" --account-name "$STATE_SA" --auth-mode login >/dev/null 2>&1; then ok "container $STATE_CONTAINER"
-  else todo "create container $STATE_CONTAINER (RBAC propagation can take ~1 min; retrying)"; for i in 1 2 3 4 5 6; do az storage container create -n "$STATE_CONTAINER" --account-name "$STATE_SA" --auth-mode login -o none 2>/dev/null && break || sleep 10; done; az storage container show -n "$STATE_CONTAINER" --account-name "$STATE_SA" --auth-mode login >/dev/null; fi
+if az storage container show -n "$STATE_CONTAINER" --account-name "$STATE_SA" --auth-mode login >/dev/null 2>&1; then ok "container $STATE_CONTAINER"
+elif $APPLY; then
+  todo "create container $STATE_CONTAINER (RBAC propagation can take ~1 min; retrying)"; for i in 1 2 3 4 5 6; do az storage container create -n "$STATE_CONTAINER" --account-name "$STATE_SA" --auth-mode login -o none 2>/dev/null && break || sleep 10; done; az storage container show -n "$STATE_CONTAINER" --account-name "$STATE_SA" --auth-mode login >/dev/null
 else todo "create container $STATE_CONTAINER"; run az storage container create -n "$STATE_CONTAINER" --account-name "$STATE_SA" --auth-mode login -o none; fi
 
 # ---- 6. outputs ----
