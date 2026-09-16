@@ -1,3 +1,9 @@
+## [0.12.2](https://github.com/integranz/slipway/compare/v0.12.1...v0.12.2) (2026-09-16)
+
+### Bug Fixes
+
+* **azure-setup:** update a federated credential whose name exists with a stale subject ([0374dd3](https://github.com/integranz/slipway/commit/0374dd3e3cfb09a041ae197df06c7ea5d60ae12c))
+
 ## [0.12.1](https://github.com/integranz/slipway/compare/v0.12.0...v0.12.1) (2026-09-16)
 
 ### Bug Fixes
