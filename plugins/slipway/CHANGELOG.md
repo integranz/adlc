@@ -1,3 +1,9 @@
+## [0.12.3](https://github.com/integranz/slipway/compare/v0.12.2...v0.12.3) (2026-09-16)
+
+### Bug Fixes
+
+* **azure-setup:** dry run reports an existing state container instead of 'would create' ([01579c2](https://github.com/integranz/slipway/commit/01579c24476296b19d1da3683742806fa8d3c495))
+
 ## [0.12.2](https://github.com/integranz/slipway/compare/v0.12.1...v0.12.2) (2026-09-16)
 
 ### Bug Fixes
