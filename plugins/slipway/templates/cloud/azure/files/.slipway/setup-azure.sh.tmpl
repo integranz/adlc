@@ -85,10 +85,20 @@ else
   fi
 fi
 fed() { # name subject
-  local name="$1" subject="$2"
-  if [ -n "${APP_OBJ:-}" ] && az ad app federated-credential list --id "$APP_OBJ" --query "[?subject=='$subject'] | length(@)" -o tsv 2>/dev/null | grep -q '^[1-9]'; then ok "$name: $subject"; return; fi
+  local name="$1" subject="$2" existing='[]' stale=""
+  if [ -n "${APP_OBJ:-}" ]; then existing=$(az ad app federated-credential list --id "$APP_OBJ" -o json 2>/dev/null || echo '[]'); fi
+  if printf '%s' "$existing" | python3 -c 'import json,sys; s=sys.argv[1]; sys.exit(0 if any(c.get("subject")==s for c in json.load(sys.stdin)) else 1)' "$subject" 2>/dev/null; then ok "$name: $subject"; return; fi
+  local params="{\"name\":\"$name\",\"issuer\":\"$ISSUER\",\"subject\":\"$subject\",\"audiences\":[\"$AUDIENCE\"]}"
+  stale=$(printf '%s' "$existing" | python3 -c 'import json,sys; n=sys.argv[1]; print(next((c.get("subject","") for c in json.load(sys.stdin) if c.get("name")==n), ""))' "$name" 2>/dev/null || true)
+  if [ -n "$stale" ]; then
+    # Same name, different subject: usually the repository was renamed (GitHub's immutable subject embeds the
+    # repository name). The old subject can never match again, so replace it in place instead of failing on the name.
+    todo "update $name: $stale -> $subject"
+    run az ad app federated-credential update --id "$APP_OBJ" --federated-credential-id "$name" --parameters "$params"
+    return
+  fi
   todo "add $name: $subject"
-  run az ad app federated-credential create --id "${APP_OBJ:-<app-object-id>}" --parameters "{\"name\":\"$name\",\"issuer\":\"$ISSUER\",\"subject\":\"$subject\",\"audiences\":[\"$AUDIENCE\"]}"
+  run az ad app federated-credential create --id "${APP_OBJ:-<app-object-id>}" --parameters "$params"
 }
 SUFFIX=""; [ "$SUB_PREFIX" != "repo:${GH_OWNER}/${GH_REPO}" ] && SUFFIX="-immutable"
 fed "github-${GH_BRANCH//\//-}${SUFFIX}" "${SUB_PREFIX}:ref:refs/heads/${GH_BRANCH}"
