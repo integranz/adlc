@@ -29,5 +29,9 @@ Review only the diff of this pull request against those rules and report as ONE 
 Keep it under 30 lines. If the diff touches only .adlc/evidence/*.md, reply with a one-line "evidence-only change".
 ```
 
-## Proof required for the tier matrix
-One real run: open a PR on `integranz/adlc-demo`, the automation posts its comment, the run appears in the dashboard. Record: PR URL, comment permalink, run timestamp, and whether the verdict was correct.
+## Proof (2026-09-16)
+- PR: https://github.com/integranz/adlc-demo/pull/2 (`docs: contributing guide`, hand-written file only)
+- Review: https://github.com/integranz/adlc-demo/pull/2#pullrequestreview-5225124070 by `cursor[bot]`, 2026-09-16T16:00:19Z (PR opened 15:59Z)
+- Automation `1f4725db-b1e4-11f1-a3d8-362438fd9788`, run `bc-bbacbb51-6bdb-4b41-bd82-313f38437c8e` (dashboard links in the review footer)
+- Verdict: "No rule violations" — correct. The comment followed the three-section format, listed the generated paths it checked, and verified the compose host ports against `compose.yaml`.
+- Observation: the automation posts a **pull request review** (state COMMENTED), not an issue comment; monitoring scripts should read `pulls/<n>/reviews`.
