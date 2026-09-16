@@ -7,3 +7,4 @@
 - `.adlc/config.yaml` is the single source of truth for delivery options and apps. Change it with `/adlc:bootstrap`; do not hand-edit generated files to switch options.
 - Verify before asserting: a claim about a build, deployment or ticket needs a command output or URL as evidence (`/adlc:verify`).
 - Do not weaken or bypass hooks, rules or tests to get a green result; report the blocker instead.
+- Work tracking for this repository goes through `/adlc:ticket` only (tracker and project from `.adlc/config.yaml`); personal or org-level Jira skills and commands do not apply here.

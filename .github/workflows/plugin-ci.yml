@@ -24,6 +24,10 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
       - name: Validate plugin and marketplace manifests
         run: npm run validate:plugin
+      - name: shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck >/dev/null
+          shellcheck -S warning plugins/adlc/hooks/*.sh plugins/adlc/scripts/*.sh scripts/release/*.sh
       - name: Shell syntax
         run: |
           shopt -s nullglob

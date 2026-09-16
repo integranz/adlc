@@ -1,7 +1,9 @@
 ---
 paths:
   - ".github/workflows/**"
-  - "**/*.md"
+  - "**/CONTRIBUTING.md"
+  - "version.json"
+  - ".releaserc*"
 ---
 # Branching rules (Gitflow) — PLANNED OPTION, template only
 
