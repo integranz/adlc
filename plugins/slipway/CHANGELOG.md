@@ -1,3 +1,9 @@
+## [0.12.1](https://github.com/integranz/slipway/compare/v0.12.0...v0.12.1) (2026-09-16)
+
+### Bug Fixes
+
+* **hooks:** shellcheck directive for the literal-tilde case pattern in guard-terraform-apply ([7e81cf0](https://github.com/integranz/slipway/commit/7e81cf05a7ac2e5b2dc81b09bd82e797b778afda))
+
 ## [0.12.0](https://github.com/integranz/slipway/compare/v0.11.0...v0.12.0) (2026-09-16)
 
 ### Features
