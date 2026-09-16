@@ -35,3 +35,9 @@ Keep it under 30 lines. If the diff touches only .slipway/evidence/*.md, reply w
 - Automation `1f4725db-b1e4-11f1-a3d8-362438fd9788`, run `bc-bbacbb51-6bdb-4b41-bd82-313f38437c8e` (dashboard links in the review footer)
 - Verdict: "No rule violations" — correct. The comment followed the three-section format, listed the generated paths it checked, and verified the compose host ports against `compose.yaml`.
 - Observation: the automation posts a **pull request review** (state COMMENTED), not an issue comment; monitoring scripts should read `pulls/<n>/reviews`.
+
+## Proof after the repository rename (2026-09-16, evening)
+- Repository renamed `adlc-demo` → `slipway-demo` earlier the same day; the automation is bound to the repository, not to its name, so no change was needed on the Cursor side.
+- PR: https://github.com/integranz/slipway-demo/pull/3 (`docs(readme): point to AGENTS.md and the verification evidence`, one hand-written file)
+- Review: https://github.com/integranz/slipway-demo/pull/3#pullrequestreview-5228208563 by `cursor[bot]`, 2026-09-16T20:54:07Z, about one minute after the PR opened. Verdict: "No rule violations", documentation-only.
+- The check name on the PR still reads "Cursor Automation: adlc-demo PR review"; that is the automation's display name inside Cursor and can be renamed there.
