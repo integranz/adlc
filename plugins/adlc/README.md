@@ -38,3 +38,6 @@ The plugin reads `.adlc/config.yaml` and repository files. It sends nothing anyw
 
 ## Option matrix
 See `templates/common/adlc/options.yaml`: `implemented` options are selectable and exercised end to end; `planned` options are shown but not selectable; `later` is roadmap.
+
+## License
+MIT (see `LICENSE`).
