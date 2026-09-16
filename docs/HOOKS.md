@@ -1,12 +1,12 @@
 # Guardrail hooks (goal 2)
 
-Plugin hooks live in `plugins/adlc/hooks/hooks.json` and run for every tool call in a session **and inside sub-agents** (the hook input carries `agent_type`). Contract: exit 0 = no objection (optionally a JSON decision on stdout), exit 2 = blocked with the reason on stderr shown to Claude. All guards fail closed: a parse error is a block, not a pass.
+Plugin hooks live in `plugins/slipway/hooks/hooks.json` and run for every tool call in a session **and inside sub-agents** (the hook input carries `agent_type`). Contract: exit 0 = no objection (optionally a JSON decision on stdout), exit 2 = blocked with the reason on stderr shown to Claude. All guards fail closed: a parse error is a block, not a pass.
 
 Why hooks and not rules: a rule tells the model what to do; a hook makes it impossible to do otherwise. A hook `ask` decision becomes `allow` in headless (`-p`, Routine, cloud) sessions, so none of these guards rely on a UI prompt.
 
-Branch tests: `bash plugins/adlc/hooks/test-hooks.sh` (76 cases, run in CI by `plugin-ci.yml`). Last local run: 2026-09-14, `passed=76 failed=0`.
+Branch tests: `bash plugins/slipway/hooks/test-hooks.sh` (76 cases, run in CI by `plugin-ci.yml`). Last local run: 2026-09-14, `passed=76 failed=0`.
 
-**Live gate test (2026-09-14, `adlc-demo` foundation layer):** in a Claude Code session with the plugin, `terraform -chdir=infra/foundation apply tfplan.dev` was blocked (`adlc guard: BLOCKED`, no approval); the human ran `scripts/approve-apply.sh infra/foundation/tfplan.dev` in another terminal; the same command then applied 8 resources and the hook consumed the token (`.adlc/approvals/` empty afterwards); a subsequent read-only plan reported no changes. Nothing was applied twice.
+**Live gate test (2026-09-14, `adlc-demo` foundation layer):** in a Claude Code session with the plugin, `terraform -chdir=infra/foundation apply tfplan.dev` was blocked (`slipway guard: BLOCKED`, no approval); the human ran `scripts/approve-apply.sh infra/foundation/tfplan.dev` in another terminal; the same command then applied 8 resources and the hook consumed the token (`.slipway/approvals/` empty afterwards); a subsequent read-only plan reported no changes. Nothing was applied twice.
 
 ---
 
@@ -16,7 +16,7 @@ Branch tests: `bash plugins/adlc/hooks/test-hooks.sh` (76 cases, run in CI by `p
 | **Runs** | `PreToolUse`, matcher `Bash`, whenever the command contains `terraform` |
 | **Blocks** | `terraform destroy`; `apply -auto-approve`; `apply -destroy`; `apply` without a saved plan file; `apply` whose plan file does not exist; any `apply` in `infra/app` (that layer is applied only by the CD workflow behind the GitHub Environment approval); `apply` of a plan file that has **no valid human approval token**; any attempt to run `approve-apply.sh` from the agent |
 | **Allows** | `plan`, `validate`, `fmt`, `init`, `show`, `output`; `apply <planfile>` in `infra/foundation` when a matching approval token exists (then consumes the token) |
-| **Human approval** | In a separate terminal: `bash <plugin-root>/scripts/approve-apply.sh infra/foundation/tfplan.dev`. Writes `.adlc/approvals/<sha256 of plan>` with a 10-minute expiry (`ADLC_APPROVAL_TTL` to change). Single use: the hook deletes it on the first allowed apply. A changed plan file has a different hash and needs a new approval. |
+| **Human approval** | In a separate terminal: `bash <plugin-root>/scripts/approve-apply.sh infra/foundation/tfplan.dev`. Writes `.slipway/approvals/<sha256 of plan>` with a 10-minute expiry (`SLIPWAY_APPROVAL_TTL` to change). Single use: the hook deletes it on the first allowed apply. A changed plan file has a different hash and needs a new approval. |
 | **On failure** | Missing `jq` and `python3` → block. Unknown layout → block with instructions. Expired token → deleted and blocked. |
 | **Evidence** | `test-hooks.sh` section `guard-terraform-apply` (24 cases incl. `cd … &&` chains, `-chdir=`, pipes and redirects after the plan file); live headless checks 2026-09-09 on both layers; live approved apply 2026-09-14 (see above) |
 
@@ -50,7 +50,7 @@ Branch tests: `bash plugins/adlc/hooks/test-hooks.sh` (76 cases, run in CI by `p
 ---
 
 ## Testing a hook on a branch
-1. Edit the script; run `bash -n` and `bash plugins/adlc/hooks/test-hooks.sh`.
+1. Edit the script; run `bash -n` and `bash plugins/slipway/hooks/test-hooks.sh`.
 2. Add a case to `test-hooks.sh` for every new block/allow path (name, script, expected exit, JSON input).
 3. Open a PR; `plugin-ci.yml` runs the suite. Merge only when `failed=0`.
-4. For a live check: `claude -p --plugin-dir ./plugins/adlc --allowedTools "Bash(terraform *)" "run: terraform apply tfplan"` in a scratch repo; expect `adlc guard: BLOCKED`.
+4. For a live check: `claude -p --plugin-dir ./plugins/slipway --allowedTools "Bash(terraform *)" "run: terraform apply tfplan"` in a scratch repo; expect `slipway guard: BLOCKED`.

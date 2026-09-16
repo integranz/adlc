@@ -1,0 +1,43 @@
+# slipway — Agentic Delivery Lifecycle plugin for Claude Code
+
+Takes a repository from "code in a repo" to "versioned image running in the cloud, verified, and tracked in a ticket", driven by skills, three role sub-agents and mechanical guardrail hooks.
+
+Status: **day 5 of 16**. Guard hooks, role sub-agents, MCP servers, option registry, config schema, scaffold engine, `bootstrap`, `dockerize` and `plan` skills, Docker Hardened Images templates for `dotnet8-api` and `react-vite`, `compose.yaml`, the Terraform foundation and Container Apps layers (azurerm 5.x), the GitHub Actions CI and gated CD templates and all five command skills (`dockerize`, `plan`, `deploy`, `verify`, `ticket`) are in place and exercised on `integranz/slipway-demo` (0.1.16 deployed to `dev` after a human approval, verified 19/19, tracked to Done in Jira DEVOPS-5).
+
+## Install
+```
+/plugin marketplace add integranz/slipway
+/plugin install slipway@slipway-marketplace
+```
+Local development: `claude --plugin-dir ./plugins/slipway`.
+
+## Uninstall / rollback
+`/plugin uninstall slipway@slipway-marketplace`. To roll back, install a specific version from the marketplace commit history (`git checkout vX.Y.Z` in the marketplace repo and re-add it), or pin `ref` in your own marketplace entry.
+
+## Skills (invoked as `/slipway:<name>`)
+| Skill | Kind | Purpose |
+|---|---|---|
+| `bootstrap` | user + model invoked | Intake interview → `.slipway/config.yaml` → classify apps → scaffold repo-side files → open ticket |
+| `dockerize` | command | Write/refresh a hardened multi-stage Dockerfile for one app and prove it runs |
+| `plan` | command | `terraform fmt/validate/plan` for one layer; never applies |
+| `deploy` | command | Trigger CD for an immutable tag and monitor it |
+| `verify` | command | Falsifiable post-deploy checks; writes `.slipway/evidence/<tag>.md` |
+| `ticket` | command | Ticket lifecycle in the configured tracker |
+| `delivery-knowledge` | model-invoked only | Reference knowledge per option (compute, versioning, base image, runner, secrets) |
+
+## Data handling
+The plugin reads `.slipway/config.yaml` and repository files. It sends nothing anywhere except through the MCP servers you enable (tracker, GitHub, Azure read-only) and the CLIs you already authenticate (`az`, `gh`, `terraform`, `docker`). Secrets are never written to the repo; hooks block it.
+
+## Scripts
+| Script | Purpose |
+|---|---|
+| `scripts/scaffold.cjs --repo <dir> [--dry-run] [--force]` | Render templates into a target repo from `.slipway/config.yaml`; refuses planned/later options; never writes a partial scaffold |
+| `scripts/validate-config.cjs [config]` | Schema + option-status + cross-dimension validation |
+| `scripts/options.cjs [dimension] [--json]` | Option registry for the intake interview |
+| `scripts/approve-apply.sh <planfile>` | Human-only, one-shot, 10-minute approval for one `terraform apply` |
+
+## Option matrix
+See `templates/common/slipway/options.yaml`: `implemented` options are selectable and exercised end to end; `planned` options are shown but not selectable; `later` is roadmap.
+
+## License
+MIT (see `LICENSE`).
