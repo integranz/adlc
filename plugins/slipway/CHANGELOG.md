@@ -1,3 +1,9 @@
+## [0.12.0](https://github.com/integranz/slipway/compare/v0.11.0...v0.12.0) (2026-09-16)
+
+### Features
+
+* **rename:** plugin adlc -> slipway (marketplace slipway-marketplace, config dir .slipway, namespace /slipway:*) ([0adda30](https://github.com/integranz/slipway/commit/0adda305e1312362b43f1fb8a276fca34d9e425a))
+
 ## [0.11.0](https://github.com/integranz/adlc/compare/v0.10.1...v0.11.0) (2026-09-16)
 
 ### Features
