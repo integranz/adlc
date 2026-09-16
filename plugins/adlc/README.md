@@ -2,7 +2,7 @@
 
 Takes a repository from "code in a repo" to "versioned image running in the cloud, verified, and tracked in a ticket", driven by skills, three role sub-agents and mechanical guardrail hooks.
 
-Status: **day 5 of 16**. Guard hooks, role sub-agents, MCP servers, option registry, config schema, scaffold engine, `bootstrap`, `dockerize` and `plan` skills, Docker Hardened Images templates for `dotnet8-api` and `react-vite`, `compose.yaml`, the Terraform foundation and Container Apps layers (azurerm 5.x), the GitHub Actions CI and gated CD templates and all five command skills (`dockerize`, `plan`, `deploy`, `verify`, `ticket`) are in place; four are exercised on `integranz/adlc-demo` (0.1.14 deployed to `dev` after a human approval and verified 19/19), `ticket` awaits the Jira OAuth grant.
+Status: **day 5 of 16**. Guard hooks, role sub-agents, MCP servers, option registry, config schema, scaffold engine, `bootstrap`, `dockerize` and `plan` skills, Docker Hardened Images templates for `dotnet8-api` and `react-vite`, `compose.yaml`, the Terraform foundation and Container Apps layers (azurerm 5.x), the GitHub Actions CI and gated CD templates and all five command skills (`dockerize`, `plan`, `deploy`, `verify`, `ticket`) are in place and exercised on `integranz/adlc-demo` (0.1.16 deployed to `dev` after a human approval, verified 19/19, tracked to Done in Jira DEVOPS-5).
 
 ## Install
 ```

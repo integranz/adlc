@@ -1,6 +1,6 @@
 # MCP integration (goal 5)
 
-Status: in progress. Servers are declared in `plugins/adlc/.mcp.json`; the golden-path task (`/adlc:ticket create → done` on `integranz.atlassian.net`, project `DEVOPS`) is scheduled for day 8.
+Status: **golden path completed 2026-09-16** on `integranz.atlassian.net` (Jira project `DEVOPS`, issue **DEVOPS-5**): `/adlc:ticket create → start → review → done`, each step followed by a `getJiraIssue` read-back. Servers are declared in `plugins/adlc/.mcp.json`.
 
 | Server | Transport | Auth | Used by | Write operations |
 |---|---|---|---|---|
@@ -25,7 +25,8 @@ Status: in progress. Servers are declared in `plugins/adlc/.mcp.json`; the golde
 3. `/adlc:ticket create` → expect a `DEVOPS-<n>` key read back from Jira, then `/adlc:ticket start DEVOPS-<n>`, `/adlc:ticket review DEVOPS-<n> --evidence .adlc/evidence/<tag>.md`, `/adlc:ticket done DEVOPS-<n> --evidence .adlc/evidence/<tag>.md`.
 4. Record the issue URL and the four transitions below.
 
-## Evidence (to be completed)
-- [ ] Golden path: `/adlc:ticket create` → `start` → `review` → `done` on `DEVOPS` in a clean workspace, with issue links.
-- [ ] `/adlc:deploy` triggering `cd.yml` through `actions_run_trigger` and polling to completion.
-- [ ] `verify` reading ACR repositories and Container Apps through the read-only Azure server.
+## Evidence
+- [x] **Golden path (2026-09-16, Atlassian Rovo MCP Server, interactive plugin session in `adlc-demo`)**: https://integranz.atlassian.net/browse/DEVOPS-5 — created with the structured description (Objective / Scope / Acceptance criteria / Evidence), `start` (To Do → In Progress), `review` with the CD run and URLs as a comment, `done` (In Review → Done via transition id 41 chosen by target status name) with the closing comment (id 10001) mapping each acceptance criterion to the claims in `.adlc/evidence/0.1.16.md` (19/19 confirmed). The skill refused to close until it had re-read the evidence file and found no REFUTED claim. Each write was followed by a `getJiraIssue` read-back (key, status category, comment count).
+- [x] `/adlc:deploy` dispatching `cd.yml` and polling to the approval gate (2026-09-15 and 2026-09-16; `gh` CLI path, since the GitHub MCP grant is per interactive session).
+- [x] `verify` reading Container Apps revisions and ACR digests (2026-09-16) — via `az` CLI in the script; the read-only Azure MCP server was handshake-tested (2026-09-13) and remains the MCP path for agents without CLI access.
+- Login note: the first OAuth attempt failed with Atlassian's "Your account isn't associated with a supported site"; the retry succeeded after the checks in the golden path procedure (site-owner account, Rovo MCP server enabled under Rovo in Atlassian Administration, Standard+ plan).
