@@ -39,10 +39,10 @@ Scope: the two repositories in scope (`integranz/adlc`, `integranz/adlc-demo`) p
 ## 2. Overlaps found and resolutions
 | # | Overlap | Where | Resolution | Status |
 |---|---|---|---|---|
-| 1 | Same task as legacy command **and** skill: `defender-scan`, `endorlabs-scan`, `sonarcloud-scan` | user scope | Keep the skills (documented primary unit), delete the three `~/.claude/commands/*.md` duplicates | **user action** (personal files) |
-| 2 | `infra-ticket` skill has no frontmatter → never discoverable by description, only by name | user scope | Add `name`/`description` frontmatter or fold into `infra-build-approval` | user action |
+| 1 | Same task as legacy command **and** skill: `defender-scan`, `endorlabs-scan`, `sonarcloud-scan` | user scope | Keep the skills (documented primary unit), delete the three `~/.claude/commands/*.md` duplicates | **done 2026-09-16** (backup in `~/.claude/backups/rules-audit-2026-09-16/`) |
+| 2 | `infra-ticket` skill has no frontmatter → never discoverable by description, only by name | user scope | Add `name`/`description` frontmatter (done; description also states it does not apply to adlc repos) | **done 2026-09-16** |
 | 3 | Personal `jira-work-item` skill ("DEVOPS board", Datavant site) vs plugin `/adlc:ticket` (project `DEVOPS` on integranz.atlassian.net): same project key, different sites; a "create a ticket" request could trigger the personal skill inside adlc repos | user scope × both repos | Repo side (done): CLAUDE.md non-negotiable "work tracking goes through `/adlc:ticket` only; personal Jira skills do not apply here". Plugin skills are namespaced, so there is no name clash; the rule removes the trigger ambiguity | done in template; user may also narrow the personal skill's description to its site |
-| 4 | `gitnexus-*` skills duplicated in `~/.cursor/skills` while Cursor already loads `~/.claude/skills` | user scope | Delete the `~/.cursor/skills/gitnexus-*` copies (single source, no drift) | user action |
+| 4 | `gitnexus-*` skills duplicated in `~/.cursor/skills` while Cursor already loads `~/.claude/skills` | user scope | Delete the `~/.cursor/skills/gitnexus-*` copies (single source, no drift); verified byte-identical before removal | **done 2026-09-16** |
 | 5 | `branching.md` loaded on every `*.md` edit (too broad; overlapped with docs work) | adlc-demo template | Paths tightened to workflows, CONTRIBUTING, version files | done |
 | 6 | Three path rules (`pipelines`, `versioning`, `branching`) all match `.github/workflows/**` | adlc-demo | Intentional: each covers a different concern (CI/CD shape, version source, branch policy) and none contradicts another; kept short (≤ 8 bullets each) | accepted |
 | 7 | "Immutable tags", "no secrets", "no unapproved apply" stated in CLAUDE.md **and** AGENTS.md **and** rules | adlc-demo | Intentional layering: CLAUDE.md = one-line non-negotiable, AGENTS.md = where to go, rule = path-scoped detail with a link to the skill reference. Wording checked for contradictions: none | accepted |
@@ -66,4 +66,4 @@ Every rule is ≤ 8 bullets and links to a skill reference for the procedure: `t
 |---|---|---|---|---|---|
 | `integranz/adlc` | done | done (#8) | done | done | 100 % |
 | `integranz/adlc-demo` | done | done (#3, #5; #6/#7 accepted) | done | done | 100 % |
-| user scope (context, not a repo in scope) | done | 3 user actions recommended (#1, #2, #4) | n/a | n/a | recommendations issued |
+| user scope (context, not a repo in scope) | done | done (#1, #2, #4 applied 2026-09-16 with backups) | n/a | n/a | clean |
