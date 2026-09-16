@@ -13,7 +13,7 @@ Status legend: [ ] not started · [~] in progress · [x] done (date)
 - [ ] Second-person review of `docs/MCP-INTEGRATION.md` access policy (goal 5 sign-off) — scheduled with the clean-install test.
 
 ## License
-- [x] (2026-09-16) Repository `LICENSE` = MIT, copyright Integrant; copy at `plugins/adlc/LICENSE`.
+- [x] (2026-09-16) Repository `LICENSE` = MIT, copyright Abdelazim Ali (author and owner of the idea and study plan); copy at `plugins/adlc/LICENSE`.
 - [x] (2026-09-16) `license: "MIT"`, `repository`, `homepage` set in `plugin.json`.
 - [x] (2026-09-16) Third-party content: `js-yaml` (MIT, header retained in the vendored file); generated validator (no license, derived from this repo's schema); Terraform/GitHub Actions snippets written for this project after reading vendor docs (facts cited in `skills/delivery-knowledge/references/*.md`). No copied vendor code.
 
