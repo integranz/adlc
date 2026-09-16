@@ -1,3 +1,9 @@
+## [0.11.0](https://github.com/integranz/adlc/compare/v0.10.1...v0.11.0) (2026-09-16)
+
+### Features
+
+* **plugin:** MIT license, security and license checklist completed, cloud environment setup script template ([6a536d6](https://github.com/integranz/adlc/commit/6a536d61ebbcf8c6046850fd32d1114290668299))
+
 ## [0.10.1](https://github.com/integranz/adlc/compare/v0.10.0...v0.10.1) (2026-09-15)
 
 ### Bug Fixes
