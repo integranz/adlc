@@ -54,3 +54,13 @@ Branch tests: `bash plugins/slipway/hooks/test-hooks.sh` (79 cases, run in CI by
 2. Add a case to `test-hooks.sh` for every new block/allow path (name, script, expected exit, JSON input).
 3. Open a PR; `plugin-ci.yml` runs the suite. Merge only when `failed=0`.
 4. For a live check: `claude -p --plugin-dir ./plugins/slipway --allowedTools "Bash(terraform *)" "run: terraform apply tfplan"` in a scratch repo; expect `slipway guard: BLOCKED`.
+
+## Coverage: a hook only protects the session that loads it
+
+Found on 2026-09-17: a background Claude Code job started from a folder **without** the repository's `.claude/settings.json` (and without the plugin enabled at user scope) ran the whole per-app cutover with **no slipway hooks active**. The human-approval protocol was still followed by discipline (plan, `approve-apply.sh` by the human, apply), but nothing enforced it mechanically, and the approval token was not consumed because no hook ran. A moved `--plugin-dir` path (`~/personal/adlc` → `~/personal/slipway`) fails the same way, silently.
+
+Rules that follow:
+- Enable the plugin at **user scope** on every machine that runs agents against these repositories (`claude plugin marketplace add integranz/slipway`, `claude plugin install slipway@slipway-marketplace`), not only through the repository's `.claude/settings.json`; background jobs and sessions opened elsewhere then carry the hooks too.
+- Prefer the marketplace install over `--plugin-dir`; if `--plugin-dir` is used for development, point it at the current checkout and restart the session after moving it.
+- Before an apply, prove the guard is present: a harmless command containing the text `approve-apply` (for example `echo approve-apply-probe`) must be **blocked**. If it prints, the hooks are not loaded; stop and fix the session first.
+- After an allowed apply, `.slipway/approvals/` must be empty; a leftover token means the guard did not run.
