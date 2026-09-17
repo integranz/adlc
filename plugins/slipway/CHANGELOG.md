@@ -1,3 +1,9 @@
+## [0.13.3](https://github.com/integranz/slipway/compare/v0.13.2...v0.13.3) (2026-09-17)
+
+### Bug Fixes
+
+* **hooks:** deny self-approval even without terraform in the same command ([ad58119](https://github.com/integranz/slipway/commit/ad581193faafd94690aedd2b3af750f4d0c5bd5c))
+
 ## [0.13.2](https://github.com/integranz/slipway/compare/v0.13.1...v0.13.2) (2026-09-17)
 
 ### Bug Fixes
