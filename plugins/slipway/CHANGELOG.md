@@ -1,3 +1,9 @@
+## [0.13.0](https://github.com/integranz/slipway/compare/v0.12.3...v0.13.0) (2026-09-17)
+
+### Features
+
+* **pipelines:** one CI and one CD workflow per app, path-filtered, with per-app versions and Terraform modules ([b9dfce9](https://github.com/integranz/slipway/commit/b9dfce9cec89a7a6dd5249713630efad9073aef1))
+
 ## [0.12.3](https://github.com/integranz/slipway/compare/v0.12.2...v0.12.3) (2026-09-16)
 
 ### Bug Fixes
