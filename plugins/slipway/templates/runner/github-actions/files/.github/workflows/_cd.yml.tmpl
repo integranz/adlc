@@ -129,17 +129,25 @@ jobs:
           o={k:v["value"] for k,v in json.load(open("outputs.json")).items()}; tag=o["image_tag"]; app="${{ inputs.app }}"
           url=o.get("health_url")
           if not url: print(f"SKIPPED  {app}: no ingress, nothing to probe"); sys.exit(0)
-          for attempt in range(12):
+          # The apply returns before the new revision takes traffic (Single revision mode switches once its probes pass,
+          # typically 20-60 s later), so the previous revision may still answer 200 with the old version. Wait for version == tag.
+          start=time.time(); deadline=start+240; last="no response"
+          while True:
               try:
                   with urllib.request.urlopen(url, timeout=20) as r:
-                      body=r.read().decode("utf-8","replace"); code=r.status; break
+                      body=r.read().decode("utf-8","replace"); code=r.status
               except Exception as e:
-                  code=None; body=str(e); time.sleep(10)
-          if code!=200: print(f"REFUTED  {app}: {url} -> {code} {body[:120]}"); sys.exit(1)
-          if body.lstrip().startswith("{"):
-              v=json.loads(body).get("version"); same=(v==tag)
-              print(f"{'CONFIRMED' if same else 'REFUTED '} {app}: {url} -> 200 version={v} (tag {tag})"); sys.exit(0 if same else 1)
-          print(f"CONFIRMED {app}: {url} -> 200")
+                  code=None; body=str(e)
+              if code==200 and not body.lstrip().startswith("{"):
+                  print(f"CONFIRMED {app}: {url} -> 200 (no version in the body) after {int(time.time()-start)}s"); sys.exit(0)
+              if code==200:
+                  v=json.loads(body).get("version")
+                  if v==tag: print(f"CONFIRMED {app}: {url} -> 200 version={v} (tag {tag}) after {int(time.time()-start)}s"); sys.exit(0)
+                  last=f"200 version={v} (previous revision still serving)"
+              else:
+                  last=f"{code} {body[:120]}"
+              if time.time()>deadline: print(f"REFUTED  {app}: {url} -> {last}; expected version {tag} within 240s"); sys.exit(1)
+              time.sleep(10)
           PY
           cat smoke.txt; { echo "### Smoke test"; echo '```'; cat smoke.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $fail

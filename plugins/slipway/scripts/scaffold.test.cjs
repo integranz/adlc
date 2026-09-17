@@ -253,7 +253,7 @@ test("per-app CD workflows: resolve + shared _cd.yml, workflow_run only with on-
   const cd = read(repo, ".github/workflows/_cd.yml"); assert.doesNotMatch(cd, /<%/);
   const doc = yaml.load(cd); assert.ok(doc.on.workflow_call); assert.deepEqual(Object.keys(doc.jobs), ["plan", "apply"]);
   assert.equal(doc.jobs.apply.environment.name, "${{ inputs.environment }}"); assert.deepEqual(doc.jobs.apply.needs, "plan");
-  for (const s of ["az acr repository show -n acradlcdemo --image \"${{ inputs.image_repository }}:$IMAGE_TAG\"", "terraform plan -input=false -no-color -var \"image_tag=$IMAGE_TAG\" -out=tfplan", "terraform apply -input=false -no-color tfplan", "ARM_USE_OIDC", "ARM_USE_AZUREAD", "deploy-evidence-${{ inputs.app }}-${{ inputs.environment }}-${{ inputs.tag }}", "working-directory: ${{ inputs.infra_dir }}"]) assert.ok(cd.includes(s), `_cd.yml missing ${s}`);
+  for (const s of ["az acr repository show -n acradlcdemo --image \"${{ inputs.image_repository }}:$IMAGE_TAG\"", "terraform plan -input=false -no-color -var \"image_tag=$IMAGE_TAG\" -out=tfplan", "terraform apply -input=false -no-color tfplan", "ARM_USE_OIDC", "ARM_USE_AZUREAD", "deploy-evidence-${{ inputs.app }}-${{ inputs.environment }}-${{ inputs.tag }}", "working-directory: ${{ inputs.infra_dir }}", "previous revision still serving", "expected version {tag} within 240s"]) assert.ok(cd.includes(s), `_cd.yml missing ${s}`);
   assert.doesNotMatch(cd, /-auto-approve/);
   const api = yaml.load(read(repo, ".github/workflows/slipway-demo-api-cd.yml"));
   assert.equal(api.name, "slipway-demo-api-cd"); assert.deepEqual(Object.keys(api.jobs), ["resolve", "cd"]);

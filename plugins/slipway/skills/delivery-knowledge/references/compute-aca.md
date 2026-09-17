@@ -10,7 +10,7 @@ Verified 2026-09-14/15 against learn.microsoft.com (connect-apps, ingress, secre
 - **Probes**: HTTP liveness (10 s interval, 5 s initial delay) and readiness (5 s interval) on `health_path`; transport values `TCP|HTTP|HTTPS`; both need `port`.
 - **Sizing**: Consumption plan requires valid cpu/memory pairs (0.25/0.5Gi, 0.5/1Gi, 0.75/1.5Gi, 1/2Gi, …); defaults 0.25 vCPU / 0.5Gi, replicas 1–2 (min 1 avoids cold starts during verification; set `scale.min: 0` for scale-to-zero). Config: `apps[*].resources`, `apps[*].scale`.
 - **Environment**: `azurerm_container_app_environment` is created once in `infra/foundation` (`cae.tf`, shared by every app) with `logs_destination = "log-analytics"` and the foundation workspace; each app module reads it with `data "azurerm_container_app_environment"`; console logs in the `ContainerAppConsoleLogs_CL` table.
-- **Revision mode `Single`**: every apply with a new `image_tag` creates a new revision and shifts 100 % traffic to it; the previous revision is kept for rollback (`az containerapp revision list`).
+- **Revision mode `Single`**: every apply with a new `image_tag` creates a new revision and shifts 100 % traffic to it once its probes pass, typically 20–60 s **after** `terraform apply` has returned; until then the previous revision still answers with the old version. The CD smoke test therefore waits for `version == tag` (up to 240 s) instead of judging the first 200 (learned on the 0.2.1 api deploy, 2026-09-17). The previous revision is kept for rollback (`az containerapp revision list`).
 - **Version stamping**: the image tag is injected as `APP_VERSION` and the images already report it (`/health`), so the smoke test compares `version == tag`.
 
 ## Verification (`/slipway:verify` recipes)
