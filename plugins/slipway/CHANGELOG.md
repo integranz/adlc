@@ -1,3 +1,9 @@
+## [0.13.1](https://github.com/integranz/slipway/compare/v0.13.0...v0.13.1) (2026-09-17)
+
+### Bug Fixes
+
+* **cd:** smoke test waits until the new revision serves the deployed version ([749c530](https://github.com/integranz/slipway/commit/749c5303fe778d5325e086965c3935ceb20c4f0f))
+
 ## [0.13.0](https://github.com/integranz/slipway/compare/v0.12.3...v0.13.0) (2026-09-17)
 
 ### Features
