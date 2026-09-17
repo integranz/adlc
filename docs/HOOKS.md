@@ -4,7 +4,7 @@ Plugin hooks live in `plugins/slipway/hooks/hooks.json` and run for every tool c
 
 Why hooks and not rules: a rule tells the model what to do; a hook makes it impossible to do otherwise. A hook `ask` decision becomes `allow` in headless (`-p`, Routine, cloud) sessions, so none of these guards rely on a UI prompt.
 
-Branch tests: `bash plugins/slipway/hooks/test-hooks.sh` (79 cases, run in CI by `plugin-ci.yml`). Last local run: 2026-09-17, `passed=79 failed=0`.
+Branch tests: `bash plugins/slipway/hooks/test-hooks.sh` (82 cases, run in CI by `plugin-ci.yml`). Last local run: 2026-09-17, `passed=82 failed=0`.
 
 **Live gate test (2026-09-14, `adlc-demo` foundation layer):** in a Claude Code session with the plugin, `terraform -chdir=infra/foundation apply tfplan.dev` was blocked (`slipway guard: BLOCKED`, no approval); the human ran `scripts/approve-apply.sh infra/foundation/tfplan.dev` in another terminal; the same command then applied 8 resources and the hook consumed the token (`.slipway/approvals/` empty afterwards); a subsequent read-only plan reported no changes. Nothing was applied twice.
 
@@ -62,5 +62,5 @@ Found on 2026-09-17: a background Claude Code job started from a folder **withou
 Rules that follow:
 - Enable the plugin at **user scope** on every machine that runs agents against these repositories (`claude plugin marketplace add integranz/slipway`, `claude plugin install slipway@slipway-marketplace`), not only through the repository's `.claude/settings.json`; background jobs and sessions opened elsewhere then carry the hooks too.
 - Prefer the marketplace install over `--plugin-dir`; if `--plugin-dir` is used for development, point it at the current checkout and restart the session after moving it.
-- Before an apply, prove the guard is present: a harmless command containing the text `approve-apply` (for example `echo approve-apply-probe`) must be **blocked**. If it prints, the hooks are not loaded; stop and fix the session first.
+- Before an apply, prove the guard is present: a harmless command containing the text `approve-apply` (for example `echo approve-apply-probe`) must be **blocked** (plugin ≥ 0.13.3; earlier versions only denied it when the command also contained `terraform`, which also let a lone `bash scripts/approve-apply.sh <plan>` through: fixed the same day). If it prints, the hooks are not loaded; stop and fix the session first.
 - After an allowed apply, `.slipway/approvals/` must be empty; a leftover token means the guard did not run.

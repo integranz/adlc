@@ -36,6 +36,9 @@ expect "apply in infra/apps/<app> denied (-chdir)" guard-terraform-apply.sh 2 "$
 expect "cd infra/apps/api && apply denied"      guard-terraform-apply.sh 2 "$(json_bash 'cd infra/apps/api && terraform apply tfplan.dev' "$T")"
 expect "apply with planfile, no approval"     guard-terraform-apply.sh 2 "$(json_bash 'terraform apply tfplan.dev' "$T/infra/foundation")"
 expect "agent cannot self-approve"            guard-terraform-apply.sh 2 "$(json_bash "bash $P/scripts/approve-apply.sh tfplan.dev && terraform apply tfplan.dev" "$T/infra/foundation")"
+expect "agent cannot self-approve (alone)"    guard-terraform-apply.sh 2 "$(json_bash "bash $P/scripts/approve-apply.sh infra/foundation/tfplan.dev" "$T")"
+expect "guard liveness probe is blocked"       guard-terraform-apply.sh 2 "$(json_bash 'echo approve-apply-probe' "$T")"
+expect "plain echo allowed"                    guard-terraform-apply.sh 0 "$(json_bash 'echo hello' "$T")"
 bash "$P/scripts/approve-apply.sh" "$T/infra/foundation/tfplan.dev" >/dev/null
 expect "apply with valid human approval"      guard-terraform-apply.sh 0 "$(json_bash 'terraform apply tfplan.dev' "$T/infra/foundation")" '"permissionDecision":"allow"'
 expect "approval is single-use"               guard-terraform-apply.sh 2 "$(json_bash 'terraform apply tfplan.dev' "$T/infra/foundation")"

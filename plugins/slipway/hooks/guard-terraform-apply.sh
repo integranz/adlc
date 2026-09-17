@@ -9,10 +9,12 @@ tool="$(hook_json tool_name)"; [ "$tool" = "Bash" ] || exit 0
 raw="$(hook_json tool_input.command)"; cmd="$(normalize_cmd "$raw")"
 cwd="$(hook_json cwd)"; [ -n "$cwd" ] || cwd="$PWD"
 
+# The agent must never mint its own approval: checked before the terraform fast path, so a lone
+# `bash scripts/approve-apply.sh <plan>` is denied too (found 2026-09-17; before, only a combined command was).
+# This also makes `echo approve-apply-probe` a valid liveness probe for the guard: it must be blocked.
+printf '%s' "$cmd" | grep -Eq 'approve-apply' && deny "Approval tokens are created by a human in a separate terminal, never from an agent session."
 # Fast path: nothing terraform-ish
 printf '%s' "$cmd" | grep -Eq '(^|[;&|(`[:space:]])terraform([[:space:]]|$)' || exit 0
-# The agent must never mint its own approval
-printf '%s' "$cmd" | grep -Eq 'approve-apply' && deny "Approval tokens are created by a human in a separate terminal, never from an agent session."
 
 # Only apply/destroy are gated; plan/validate/fmt/init/show/output are fine
 printf '%s' "$cmd" | grep -Eq 'terraform([[:space:]]+-[^[:space:]]+)*[[:space:]]+(apply|destroy)([[:space:]]|$)' || exit 0
