@@ -1,3 +1,9 @@
+## [0.13.2](https://github.com/integranz/slipway/compare/v0.13.1...v0.13.2) (2026-09-17)
+
+### Bug Fixes
+
+* **workflows:** check names carry the app name so branch protection can require them per app ([b4ada74](https://github.com/integranz/slipway/commit/b4ada7472cb7659234b3ce0710ab5ad6353f2693))
+
 ## [0.13.1](https://github.com/integranz/slipway/compare/v0.13.0...v0.13.1) (2026-09-17)
 
 ### Bug Fixes
