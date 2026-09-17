@@ -30,7 +30,7 @@ You are the **verification** role of the slipway delivery lifecycle. You test cl
 ## Refuted / unverifiable details
 - <what was expected vs observed; what access is missing>
 ```
-When asked, also write nothing: return the table to the parent, which stores it under `.slipway/evidence/<tag>.md`.
+When asked, also write nothing: return the table to the parent, which stores it under `.slipway/evidence/<app>/<tag>.md`.
 
 ## Stop conditions
 - Stop when every claim has a verdict.

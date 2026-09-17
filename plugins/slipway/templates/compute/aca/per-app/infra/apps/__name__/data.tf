@@ -13,12 +13,12 @@ data "azurerm_user_assigned_identity" "apps" {
   resource_group_name = local.resource_group_name
 }
 
-data "azurerm_log_analytics_workspace" "this" {
-  name                = local.log_analytics_name
+data "azurerm_key_vault" "this" {
+  name                = local.key_vault_name
   resource_group_name = local.resource_group_name
 }
 
-data "azurerm_key_vault" "this" {
-  name                = local.key_vault_name
+data "azurerm_container_app_environment" "this" {
+  name                = local.cae_name
   resource_group_name = local.resource_group_name
 }

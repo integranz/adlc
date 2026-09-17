@@ -19,9 +19,9 @@ Local development: `claude --plugin-dir ./plugins/slipway`.
 |---|---|---|
 | `bootstrap` | user + model invoked | Intake interview → `.slipway/config.yaml` → classify apps → scaffold repo-side files → open ticket |
 | `dockerize` | command | Write/refresh a hardened multi-stage Dockerfile for one app and prove it runs |
-| `plan` | command | `terraform fmt/validate/plan` for one layer; never applies |
-| `deploy` | command | Trigger CD for an immutable tag and monitor it |
-| `verify` | command | Falsifiable post-deploy checks; writes `.slipway/evidence/<tag>.md` |
+| `plan` | command | `terraform fmt/validate/plan` for one layer (`foundation` or `apps/<app>`); never applies |
+| `deploy` | command | Trigger one app's CD for an immutable tag and monitor it (`deploy <app> <tag> <env>`) |
+| `verify` | command | Falsifiable post-deploy checks; writes `.slipway/evidence/<app>/<tag>.md` |
 | `ticket` | command | Ticket lifecycle in the configured tracker |
 | `delivery-knowledge` | model-invoked only | Reference knowledge per option (compute, versioning, base image, runner, secrets) |
 
@@ -34,7 +34,12 @@ The plugin reads `.slipway/config.yaml` and repository files. It sends nothing a
 | `scripts/scaffold.cjs --repo <dir> [--dry-run] [--force]` | Render templates into a target repo from `.slipway/config.yaml`; refuses planned/later options; never writes a partial scaffold |
 | `scripts/validate-config.cjs [config]` | Schema + option-status + cross-dimension validation |
 | `scripts/options.cjs [dimension] [--json]` | Option registry for the intake interview |
+| `scripts/app-info.cjs [<app>] [--json]` | Derived delivery facts per app: workflow names, tag prefix, build context, `infra/apps/<app>`, state key, inputs |
+| `scripts/verify.cjs <app> <env> <tag>` | Deterministic post-deployment claims for one app; writes `.slipway/evidence/<app>/<tag>.md` |
 | `scripts/approve-apply.sh <planfile>` | Human-only, one-shot, 10-minute approval for one `terraform apply` |
+
+## Pipelines per app
+Every app gets `<prefix>-<app>-ci` and `<prefix>-<app>-cd` (thin callers of the shared `_ci.yml`/`_cd.yml`), its own `version.json` with path filters, its own git tags `<app>/v<semver>` and its own Terraform module and state under `infra/apps/<app>`. A change triggers only the apps whose inputs it touches; shared inputs trigger every app that lists them. Options `cd_trigger` (manual or after a green CI) and `pr_checks` (pure path filter or an always-running gate for protected branches) shape the workflows. Design: `docs/PIPELINES-PER-APP.md` in the plugin repository.
 
 ## Option matrix
 See `templates/common/slipway/options.yaml`: `implemented` options are selectable and exercised end to end; `planned` options are shown but not selectable; `later` is roadmap.

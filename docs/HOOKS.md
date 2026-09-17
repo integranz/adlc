@@ -4,7 +4,7 @@ Plugin hooks live in `plugins/slipway/hooks/hooks.json` and run for every tool c
 
 Why hooks and not rules: a rule tells the model what to do; a hook makes it impossible to do otherwise. A hook `ask` decision becomes `allow` in headless (`-p`, Routine, cloud) sessions, so none of these guards rely on a UI prompt.
 
-Branch tests: `bash plugins/slipway/hooks/test-hooks.sh` (76 cases, run in CI by `plugin-ci.yml`). Last local run: 2026-09-14, `passed=76 failed=0`.
+Branch tests: `bash plugins/slipway/hooks/test-hooks.sh` (79 cases, run in CI by `plugin-ci.yml`). Last local run: 2026-09-17, `passed=79 failed=0`.
 
 **Live gate test (2026-09-14, `adlc-demo` foundation layer):** in a Claude Code session with the plugin, `terraform -chdir=infra/foundation apply tfplan.dev` was blocked (`slipway guard: BLOCKED`, no approval); the human ran `scripts/approve-apply.sh infra/foundation/tfplan.dev` in another terminal; the same command then applied 8 resources and the hook consumed the token (`.slipway/approvals/` empty afterwards); a subsequent read-only plan reported no changes. Nothing was applied twice.
 
@@ -14,7 +14,7 @@ Branch tests: `bash plugins/slipway/hooks/test-hooks.sh` (76 cases, run in CI by
 | | |
 |---|---|
 | **Runs** | `PreToolUse`, matcher `Bash`, whenever the command contains `terraform` |
-| **Blocks** | `terraform destroy`; `apply -auto-approve`; `apply -destroy`; `apply` without a saved plan file; `apply` whose plan file does not exist; any `apply` in `infra/app` (that layer is applied only by the CD workflow behind the GitHub Environment approval); `apply` of a plan file that has **no valid human approval token**; any attempt to run `approve-apply.sh` from the agent |
+| **Blocks** | `terraform destroy`; `apply -auto-approve`; `apply -destroy`; `apply` without a saved plan file; `apply` whose plan file does not exist; any `apply` in `infra/app` or `infra/apps/<app>` (the app layer is applied only by the app's CD workflow behind the GitHub Environment approval); `apply` of a plan file that has **no valid human approval token**; any attempt to run `approve-apply.sh` from the agent |
 | **Allows** | `plan`, `validate`, `fmt`, `init`, `show`, `output`; `apply <planfile>` in `infra/foundation` when a matching approval token exists (then consumes the token) |
 | **Human approval** | In a separate terminal: `bash <plugin-root>/scripts/approve-apply.sh infra/foundation/tfplan.dev`. Writes `.slipway/approvals/<sha256 of plan>` with a 10-minute expiry (`SLIPWAY_APPROVAL_TTL` to change). Single use: the hook deletes it on the first allowed apply. A changed plan file has a different hash and needs a new approval. |
 | **On failure** | Missing `jq` and `python3` → block. Unknown layout → block with instructions. Expired token → deleted and blocked. |

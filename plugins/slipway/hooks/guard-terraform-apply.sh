@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Guardrail 1: no `terraform apply` without explicit human approval; never destroy; never -auto-approve;
-# never apply the infra/app layer from a session (CD only).
+# never apply the app layer (infra/apps/<app>, formerly infra/app) from a session (CD only).
 # Approval = one-shot token written by a human with scripts/approve-apply.sh <planfile> (10 min TTL).
 # Rationale: a hook "ask" decision becomes "allow" in headless (-p) sessions, so a UI prompt is not a gate.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -33,7 +33,7 @@ chdir="$(printf '%s' "$cmd" | grep -Eo -- '-chdir=[^[:space:]]+' | head -1 | cut
 if [ -n "$chdir" ]; then case "$chdir" in /*) dir="$chdir";; *) dir="$dir/$chdir";; esac; fi
 dir="$(cd "$dir" 2>/dev/null && pwd -P || printf '%s' "$dir")"
 
-case "$dir" in *"/infra/app"|*"/infra/app/"*) deny "The infra/app layer is applied only by the CD workflow behind the environment approval gate. Use /slipway:deploy <tag> <env> instead of applying it here.";; esac
+case "$dir" in *"/infra/app"|*"/infra/app/"*|*"/infra/apps"|*"/infra/apps/"*) deny "The app layer (infra/apps/<app>, formerly infra/app) is applied only by the CD workflow behind the environment approval gate. Use /slipway:deploy <app> <tag> <env> instead of applying it here.";; esac
 
 # Plan file = last non-flag token of the apply command itself, i.e. before any pipe, redirect or command separator
 # (so `terraform apply tfplan.dev | less` resolves tfplan.dev, not `less`).

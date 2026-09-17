@@ -4,8 +4,8 @@ set -u
 H="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"; P="$(dirname "$H")"
 pass=0; fail=0
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
-git -C "$T" init -q -b main; mkdir -p "$T/infra/foundation" "$T/infra/app" "$T/.github/workflows"
-printf 'plan' > "$T/infra/foundation/tfplan.dev"; printf 'plan' > "$T/infra/app/tfplan.dev"
+git -C "$T" init -q -b main; mkdir -p "$T/infra/foundation" "$T/infra/app" "$T/infra/apps/api" "$T/.github/workflows"
+printf 'plan' > "$T/infra/foundation/tfplan.dev"; printf 'plan' > "$T/infra/app/tfplan.dev"; printf 'plan' > "$T/infra/apps/api/tfplan.dev"
 printf '.slipway/approvals/\n*.tfvars\n!*.tfvars.example\ntfplan*\n' > "$T/.gitignore"; git -C "$T" add .gitignore; git -C "$T" -c user.email=t@t -c user.name=t commit -qm init
 
 json_bash() { # cmd cwd [agent_type]
@@ -31,6 +31,9 @@ expect "destroy denied"                       guard-terraform-apply.sh 2 "$(json
 expect "apply -destroy denied"                guard-terraform-apply.sh 2 "$(json_bash 'terraform apply -destroy tfplan.dev' "$T/infra/foundation")"
 expect "apply in infra/app denied (cwd)"      guard-terraform-apply.sh 2 "$(json_bash 'terraform apply tfplan.dev' "$T/infra/app")"
 expect "apply in infra/app denied (-chdir)"   guard-terraform-apply.sh 2 "$(json_bash "terraform -chdir=$T/infra/app apply tfplan.dev" "$T")"
+expect "apply in infra/apps/<app> denied (cwd)" guard-terraform-apply.sh 2 "$(json_bash 'terraform apply tfplan.dev' "$T/infra/apps/api")"
+expect "apply in infra/apps/<app> denied (-chdir)" guard-terraform-apply.sh 2 "$(json_bash "terraform -chdir=$T/infra/apps/api apply tfplan.dev" "$T")"
+expect "cd infra/apps/api && apply denied"      guard-terraform-apply.sh 2 "$(json_bash 'cd infra/apps/api && terraform apply tfplan.dev' "$T")"
 expect "apply with planfile, no approval"     guard-terraform-apply.sh 2 "$(json_bash 'terraform apply tfplan.dev' "$T/infra/foundation")"
 expect "agent cannot self-approve"            guard-terraform-apply.sh 2 "$(json_bash "bash $P/scripts/approve-apply.sh tfplan.dev && terraform apply tfplan.dev" "$T/infra/foundation")"
 bash "$P/scripts/approve-apply.sh" "$T/infra/foundation/tfplan.dev" >/dev/null

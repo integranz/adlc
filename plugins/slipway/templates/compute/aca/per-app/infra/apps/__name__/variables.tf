@@ -1,6 +1,6 @@
 variable "image_tag" {
   type        = string
-  description = "Immutable image tag produced by CI (semver). The same tag is deployed for every app."
+  description = "Immutable image tag produced by CI (semver). Deployed for this app only."
 
   validation {
     condition     = can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+", var.image_tag)) && !contains(["latest", "main", "dev"], var.image_tag)

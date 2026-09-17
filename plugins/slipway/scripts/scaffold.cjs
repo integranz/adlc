@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 // Deterministic scaffold: renders plugin templates into a target repo according to .slipway/config.yaml.
 // usage: node scaffold.cjs [--repo <dir>] [--config <path>] [--force] [--dry-run] [--app <name>]
-// Layout: templates/common/files/**            -> always
+// Layout: templates/common/files/**              -> always
 //         templates/<dimension>/<option>/files/** -> when options.<dimension> == option
-//         templates/stack/<stack>/app/**        -> into each app path with that stack (context: app + root)
+//         templates/common/per-app/**             -> once per app; filename tokens __app__ (<prefix>-<app>), __name__, __path__
+//         templates/<dimension>/<option>/per-app/** -> once per app when the option is selected (same tokens)
+//         templates/stack/<stack>/app/**          -> into each app path with that stack (context: app + root)
 // A `.tmpl` suffix means "render placeholders, strip suffix"; other files are copied verbatim.
-// Existing files are left untouched unless --force; .gitignore is merged line-wise.
+// Existing files are left untouched unless --force; .gitignore is merged line-wise; version.json keeps its `version`
+// (only the generated pathFilters and release.tagName are refreshed).
 "use strict";
 const fs = require("node:fs"), path = require("node:path");
 const { loadConfig, derive, PLUGIN_ROOT } = require("./lib/config.cjs");
@@ -24,29 +27,38 @@ if (errors.length) { console.error(`config invalid (${configPath}):`); errors.fo
 let derived;
 try { derived = derive(config, options, repo); } catch (e) { console.error(`config error: ${e.message}\nnothing was written`); process.exit(1); }
 const ctx = { ...config, derived };
-const onlyApp = val("--app", null); // render only this app's stack templates (used by /slipway:dockerize)
+const onlyApp = val("--app", null); // render only this app's files (stack + per-app sets); used by /slipway:dockerize
 if (onlyApp && !derived.apps.some(a => a.name === onlyApp)) { console.error(`--app ${onlyApp}: no such app in config`); process.exit(1); }
 
 function walk(dir) { if (!fs.existsSync(dir)) return []; const out = []; for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) out.push(...walk(p)); else out.push(p); } return out; }
 const plan = []; // {src, dest, context, tmpl}
 const missing = [];
-function addSet(srcRoot, destRoot, context, label) {
+function addSet(srcRoot, destRoot, context, label, tokens) {
   if (!fs.existsSync(srcRoot)) { missing.push(label); return; }
   for (const src of walk(srcRoot)) {
-    const rel = path.relative(srcRoot, src);
+    let rel = path.relative(srcRoot, src);
+    if (tokens) for (const [k, v] of Object.entries(tokens)) rel = rel.split(k).join(v);
     const dest = path.join(destRoot, rel.endsWith(".tmpl") ? rel.slice(0, -5) : rel);
     plan.push({ src, dest, context, tmpl: rel.endsWith(".tmpl") });
   }
 }
 console.log(`scaffold ${config.project.name} -> ${repo}${dry ? " (dry run)" : ""}`);
+const optionSets = Object.entries(config.options);
 if (!onlyApp) {
   addSet(path.join(T, "common", "files"), repo, ctx, "common");
-  for (const [dim, opt] of Object.entries(config.options)) addSet(path.join(T, dim, opt, "files"), repo, ctx, `${dim}=${opt}`);
+  for (const [dim, opt] of optionSets) addSet(path.join(T, dim, opt, "files"), repo, ctx, `${dim}=${opt}`);
 }
+const perAppMissing = new Set();
 for (const app of ctx.derived.apps) if (!onlyApp || app.name === onlyApp) {
+  const appCtx = { ...ctx, app };
+  const tokens = { "__app__": app.workflow_base, "__name__": app.name, "__path__": app.path };
+  const before = missing.length;
+  addSet(path.join(T, "common", "per-app"), repo, appCtx, "common (per app)", tokens);
+  for (const [dim, opt] of optionSets) addSet(path.join(T, dim, opt, "per-app"), repo, appCtx, `${dim}=${opt} (per app)`, tokens);
+  missing.splice(before).forEach(m => perAppMissing.add(m)); // per-app sets are optional per option; report once
   const stackDir = path.join(T, "stack", app.stack, "app");
   if (fs.existsSync(stackDir) && app.build && app.build.error) { console.error(`config error: ${app.build.error}\nnothing was written`); process.exit(1); }
-  addSet(stackDir, path.join(repo, app.path), { ...ctx, app }, `stack=${app.stack} (${app.name})`);
+  addSet(stackDir, path.join(repo, app.path), appCtx, `stack=${app.stack} (${app.name})`);
 }
 if (missing.length) console.log(`  (no repo-side templates for: ${missing.join(", ")})`);
 
@@ -63,6 +75,8 @@ for (const item of plan) {
   }
   rendered.push({ ...item, relDest, content });
 }
+const dup = rendered.map(r => r.relDest).filter((d, i, a) => a.indexOf(d) !== i);
+if (dup.length) { console.error(`template error: several templates render to the same file: ${[...new Set(dup)].join(", ")}\nnothing was written`); process.exit(1); }
 
 // Phase 2: write.
 const summary = { written: 0, skipped: 0, merged: 0 };
@@ -76,9 +90,27 @@ for (const item of rendered) {
     else { console.log(`  ok      ${relDest} (already complete)`); summary.skipped++; }
     continue;
   }
+  if (exists && path.basename(item.dest) === "version.json") { // the version is owned by humans; only generated fields are refreshed
+    let have, want;
+    try { have = JSON.parse(fs.readFileSync(item.dest, "utf8")); want = JSON.parse(content); }
+    catch (e) { console.error(`cannot merge ${relDest}: ${e.message}`); process.exit(1); }
+    const merged = { ...have };
+    if (want.pathFilters) merged.pathFilters = want.pathFilters;
+    if (want.release && want.release.tagName) merged.release = { ...(have.release || {}), tagName: want.release.tagName };
+    if (JSON.stringify(merged) !== JSON.stringify(have)) { if (!dry) fs.writeFileSync(item.dest, JSON.stringify(merged, null, 2) + "\n"); console.log(`  merge   ${relDest} (pathFilters/tagName refreshed; version ${have.version} kept)`); summary.merged++; }
+    else { console.log(`  ok      ${relDest} (already complete)`); summary.skipped++; }
+    continue;
+  }
   if (exists && !force) { console.log(`  skip    ${relDest} (exists; use --force to overwrite)`); summary.skipped++; continue; }
   if (!dry) { fs.mkdirSync(path.dirname(item.dest), { recursive: true }); fs.writeFileSync(item.dest, content); if (/\.(sh|cjs|mjs)$/.test(item.dest)) fs.chmodSync(item.dest, 0o755); }
   console.log(`  ${exists ? "replace" : "write  "} ${relDest}`); summary.written++;
 }
 if (!dry) fs.mkdirSync(path.join(repo, ".slipway", "evidence"), { recursive: true });
 console.log(`done: ${summary.written} written, ${summary.merged} merged, ${summary.skipped} skipped`);
+
+// Files from the combined-pipeline layout (before one CI/CD per app) are never deleted by the scaffold; point at them.
+if (!onlyApp) {
+  const legacy = [".github/workflows/ci.yml", ".github/workflows/cd.yml", "infra/app", ...(config.options.versioning === "nbgv" ? ["version.json"] : [])]
+    .filter(p => fs.existsSync(path.join(repo, p)));
+  if (legacy.length) console.log(`  legacy  ${legacy.join(", ")}: combined-pipeline layout; every app now has its own workflows, infra/apps/<app> and version.json. Remove these after migrating (see the plugin docs, PIPELINES-PER-APP.md).`);
+}

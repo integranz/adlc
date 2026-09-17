@@ -1,13 +1,13 @@
-# Values rendered from .slipway/config.yaml. Change them with /slipway:bootstrap, then re-scaffold.
+# Values rendered from .slipway/config.yaml for app `<% app.name %>`. Change them with /slipway:bootstrap, then re-scaffold.
 locals {
   project     = "<% project.name %>"
   environment = "<% derived.env %>"
+  app         = "<% app.name %>"
 
   resource_group_name = "<% azure.resource_group %>"
   acr_name            = "<% azure.acr_name %>"
   key_vault_name      = "<% azure.key_vault_name %>"
   identity_name       = "<% azure.identity_name %>"
-  log_analytics_name  = "log-<% project.name %>-<% derived.env %>"
   cae_name            = "cae-<% project.name %>-<% derived.env %>"
 
   tags = {

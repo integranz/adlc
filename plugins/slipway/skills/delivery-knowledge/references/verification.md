@@ -23,4 +23,5 @@ Every claim gets one command and a literal comparison. CONFIRMED needs a positiv
 |---|---|
 | Running image digest == registry digest | `az containerapp revision list -n APP -g RG --query "[?properties.active].properties.template.containers[0].image" -o tsv` then `docker manifest inspect` / ACR digest |
 | URL answers with the version | `curl -fsS https://FQDN/health` → `.version == TAG` |
-| No drift | `terraform -chdir=infra/app plan -detailed-exitcode -var image_tag=TAG` → exit 0 |
+| No drift | `terraform -chdir=infra/apps/<app> plan -detailed-exitcode -var image_tag=TAG` → exit 0 (per app) |
+| Pipeline definition | CI `on.push.paths` == `version.json` `pathFilters` == inputs derived from `.slipway/config.yaml` (verify.cjs claim) |

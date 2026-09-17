@@ -1,6 +1,6 @@
 # Design: one CI and one CD per app (change request 2026-09-17)
 
-Status: **approved design, implementation in progress** (target plugin 0.13.0; demo cutover with human-gated applies).
+Status: **implemented in plugin 0.13.0** (2026-09-17: templates, engine, verify, hooks, skills, tests). Demo cutover with human-gated applies: see the cutover section below.
 
 ## Requirements (from the user)
 
@@ -60,3 +60,12 @@ The per-app path list = app path + `paths` + `shared_paths` + the four workflow 
 ## Skill surface
 
 `/slipway:deploy <app> <tag> [env]`, `/slipway:verify <app> <env> <tag>`, `/slipway:plan <env> --layer foundation|apps/<app>`; evidence at `.slipway/evidence/<app>/<tag>.md`. `dockerize` and `ticket` unchanged.
+
+## Cutover of an existing repository (the demo)
+
+1. Re-scaffold with the new plugin (`scaffold.cjs --force`); the scaffold prints a `legacy` line for `ci.yml`, `cd.yml`, `infra/app`, root `version.json`.
+2. Add per-app `version` values (the demo starts at `0.2` so `api/v0.2.x`, `web/v0.2.x` stay ahead of `v0.1.24`), commit `apps/<app>/version.json`, delete the root `version.json` and the legacy workflows.
+3. `infra/foundation`: add a one-off `import.tf` with an `import` block for the existing Container Apps environment, `/slipway:plan dev --layer foundation` (expect 1 to import, tag-only change), human token, apply.
+4. `infra/apps/<app>`: one-off `import.tf` per app for the existing container app; the first CD run per app plans "1 to import, 0 to add"; the human approves the `dev` environment.
+5. Old state: `terraform -chdir=infra/app state rm` for the environment and both apps (or delete the blob `<project>/app/<env>.tfstate` after confirming the imports), then remove `infra/app` and the `import.tf` files.
+6. `/slipway:verify <app> dev <tag>` for each app; commit the evidence under `.slipway/evidence/<app>/`.

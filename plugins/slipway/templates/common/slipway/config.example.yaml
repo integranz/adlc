@@ -16,6 +16,8 @@ options:
   tracker: jira
   secret_store: azure-key-vault
   base_image: dhi
+  cd_trigger: on-ci-success   # optional (default manual): <prefix>-<app>-cd also starts when <prefix>-<app>-ci succeeds on main
+  pr_checks: always-run-gate  # optional (default path-filtered): per-app CI checks are safe to require on the branch
 
 azure:
   # subscription_id / tenant_id are optional: omit them and set ARM_SUBSCRIPTION_ID / ARM_TENANT_ID
@@ -47,6 +49,12 @@ jira:
 
 environments: [dev]
 
+# One CI and one CD workflow per app: <name_prefix>-<app>-ci / <name_prefix>-<app>-cd (default prefix: github.repo).
+pipelines:
+  name_prefix: slipway-demo
+# Repository-level inputs of every app (the shared workflow files _ci.yml/_cd.yml are added automatically).
+shared_paths: []
+
 apps:
   - name: api
     path: apps/api
@@ -56,6 +64,8 @@ apps:
     health_path: /health
     test_command: dotnet test apps/api
     image_repository: adlc-demo/api
+    paths: [libs/dotnet/Demo.Contracts]   # shared library referenced by the API (detected from ProjectReferences too)
+    version: "0.2"                        # initial version for apps/api/version.json (never rewritten)
   - name: web
     path: apps/web
     kind: frontend
@@ -65,5 +75,6 @@ apps:
     test_command: npm --prefix apps/web test
     image_repository: adlc-demo/web
     upstreams: [api]
+    version: "0.2"
 
 cursor_mirror: false

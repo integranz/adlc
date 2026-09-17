@@ -6,15 +6,19 @@ function repo() { const r = fs.mkdtempSync(path.join(os.tmpdir(), "slipway-verif
 test("verify.cjs refuses bad arguments before touching anything", () => {
   const r = repo();
   let x = spawnSync(process.execPath, [V], { encoding: "utf8", cwd: r }); assert.equal(x.status, 1); assert.match(x.stderr, /usage/);
-  x = spawnSync(process.execPath, [V, "prod", "0.1.0", "--repo", r], { encoding: "utf8" }); assert.equal(x.status, 1); assert.match(x.stderr, /environment 'prod' is not in/);
-  x = spawnSync(process.execPath, [V, "dev", "latest", "--repo", r], { encoding: "utf8" }); assert.equal(x.status, 1); assert.match(x.stderr, /not a semver tag/);
-  assert.ok(!fs.existsSync(path.join(r, ".slipway", "evidence", "latest.md")), "must not write evidence for invalid input");
+  x = spawnSync(process.execPath, [V, "api", "dev", "--repo", r], { encoding: "utf8" }); assert.equal(x.status, 1); assert.match(x.stderr, /usage/);
+  x = spawnSync(process.execPath, [V, "nope", "dev", "0.1.0", "--repo", r], { encoding: "utf8" }); assert.equal(x.status, 1); assert.match(x.stderr, /app 'nope' is not in/);
+  x = spawnSync(process.execPath, [V, "api", "prod", "0.1.0", "--repo", r], { encoding: "utf8" }); assert.equal(x.status, 1); assert.match(x.stderr, /environment 'prod' is not in/);
+  x = spawnSync(process.execPath, [V, "api", "dev", "latest", "--repo", r], { encoding: "utf8" }); assert.equal(x.status, 1); assert.match(x.stderr, /not a semver tag/);
+  assert.ok(!fs.existsSync(path.join(r, ".slipway", "evidence")), "must not write evidence for invalid input");
 });
-test("verify.cjs --no-write leaves the repo untouched and reports per claim", () => {
+test("verify.cjs --no-write leaves the repo untouched and reports per claim for one app", () => {
   const r = repo(); const env = { ...process.env, PATH: "/nonexistent" }; // no gh/az/terraform: everything unverifiable/refuted but well-formed
-  const x = spawnSync(process.execPath, [V, "dev", "0.1.0", "--repo", r, "--no-write", "--json"], { encoding: "utf8", env, timeout: 120000 });
+  const x = spawnSync(process.execPath, [V, "web", "dev", "0.1.0", "--repo", r, "--no-write", "--json"], { encoding: "utf8", env, timeout: 120000 });
   assert.ok([2, 3].includes(x.status), `exit ${x.status}: ${x.stderr}`);
-  const j = JSON.parse(x.stdout); assert.equal(j.env, "dev"); assert.equal(j.tag, "0.1.0"); assert.ok(j.claims.length >= 3);
+  const j = JSON.parse(x.stdout); assert.equal(j.app, "web"); assert.equal(j.env, "dev"); assert.equal(j.tag, "0.1.0"); assert.ok(j.claims.length >= 3);
   for (const c of j.claims) assert.ok(["CONFIRMED", "REFUTED", "UNVERIFIABLE"].includes(c.verdict));
-  assert.ok(!fs.existsSync(path.join(r, ".slipway", "evidence", "0.1.0.md")));
+  assert.ok(j.claims.some(c => /trigger paths and version\.json pathFilters/.test(c.claim) && c.verdict === "REFUTED"), "missing workflow/version.json must refute the pipeline-definition claim");
+  assert.equal(j.evidence, path.join(r, ".slipway", "evidence", "web", "0.1.0.md"));
+  assert.ok(!fs.existsSync(path.join(r, ".slipway", "evidence")));
 });

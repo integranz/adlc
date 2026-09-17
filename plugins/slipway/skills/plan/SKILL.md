@@ -1,20 +1,20 @@
 ---
 name: plan
-description: Run terraform fmt, validate and plan for one infrastructure layer of this repository and summarise the changes. Never applies; tells the human exactly how to approve and apply.
+description: Run terraform fmt, validate and plan for one infrastructure layer of this repository (foundation, or one app's module) and summarise the changes. Never applies; tells the human exactly how to approve and apply.
 disable-model-invocation: true
-allowed-tools: Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/*), Read, Glob, Grep, Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/validate-config.cjs" *), Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/scaffold.cjs" *), Bash(az account show *), Bash(terraform -chdir=* init *), Bash(terraform -chdir=* fmt *), Bash(terraform -chdir=* validate *), Bash(terraform -chdir=* plan *), Bash(terraform -chdir=* show *), Bash(terraform -chdir=* output *), Bash(terraform -chdir=* providers *), Bash(git status *), Bash(git rev-parse *)
+allowed-tools: Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/*), Read, Glob, Grep, Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/validate-config.cjs" *), Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/scaffold.cjs" *), Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/app-info.cjs" *), Bash(az account show *), Bash(terraform -chdir=* init *), Bash(terraform -chdir=* fmt *), Bash(terraform -chdir=* validate *), Bash(terraform -chdir=* plan *), Bash(terraform -chdir=* show *), Bash(terraform -chdir=* output *), Bash(terraform -chdir=* providers *), Bash(git status *), Bash(git rev-parse *)
 ---
 
 # /slipway:plan — plan one Terraform layer
 
-Arguments: `$0` environment (default `dev`); `--layer foundation|app` (default `foundation`); `--image-tag <semver>` (app layer only; defaults to the tag currently deployed, else refuses).
+Arguments: `$0` environment (default `dev`); `--layer foundation|apps/<app>` (default `foundation`); `--image-tag <semver>` (app modules only; defaults to the tag currently deployed for that app, else refuses).
 
 ## Layers
 | Layer | Directory | Owns | Who applies |
 |---|---|---|---|
-| `foundation` | `infra/foundation` | registry, key vault, app identity, log analytics, role assignments inside the resource group | a **human**, after this plan, with an approval token (`scripts/approve-apply.sh`) |
-| `app` | `infra/app` | compute (Container Apps environment + apps) and image tags | only the CD workflow behind the GitHub environment approval; `/slipway:plan dev --layer app` is read-only here |
-The resource group and the state storage are created by `.slipway/setup-azure.sh`, not by Terraform.
+| `foundation` | `infra/foundation` | registry, key vault, app identity, log analytics, the Container Apps environment (compute `aca`), role assignments inside the resource group | a **human**, after this plan, with an approval token (`scripts/approve-apply.sh`) |
+| `apps/<app>` | `infra/apps/<app>` | exactly one container app and its image tag; its own state (`<project>/apps/<app>/<env>.tfstate`) | only that app's CD workflow (`<prefix>-<app>-cd`) behind the GitHub environment approval; `/slipway:plan dev --layer apps/<app>` is read-only here |
+The resource group and the state storage are created by `.slipway/setup-azure.sh`, not by Terraform. `node "${CLAUDE_PLUGIN_ROOT}/scripts/app-info.cjs"` lists the apps and their directories.
 
 ## Preconditions
 1. `.slipway/config.yaml` validates (`validate-config.cjs`). If `infra/<layer>/` is missing, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/scaffold.cjs" --repo .` first (it renders the layer from the cloud/compute templates) and say so.
@@ -50,7 +50,7 @@ Approve (you, in your own terminal, not in this session):
 Apply (in this session within 10 minutes, once):
   terraform -chdir=infra/foundation apply tfplan.<env>
 ```
-For `app`: "This layer is applied by CD: `/slipway:deploy <tag> <env>`."
+For `apps/<app>`: "This module is applied by CD: `/slipway:deploy <app> <tag> <env>`."
 
 ## Do not
 - Never run `terraform apply` or `destroy` from this skill, even if asked; the guard hook blocks it and the human owns the apply.

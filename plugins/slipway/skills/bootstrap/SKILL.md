@@ -6,7 +6,7 @@ allowed-tools: Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/*), Read, Glob, Grep, Wri
 
 # /slipway:bootstrap — intake, classification, scaffold, ticket
 
-Turns a repository into an slipway-managed repository: `.slipway/config.yaml` (single source of truth), `AGENTS.md`, `CLAUDE.md`, `.claude/settings.json`, path-scoped rules, and the per-option files (workflows, infra, Dockerfiles as those options ship). Everything generated comes from templates rendered by a script; you never hand-write generated files.
+Turns a repository into a slipway-managed repository: `.slipway/config.yaml` (single source of truth), `AGENTS.md`, `CLAUDE.md`, `.claude/settings.json`, path-scoped rules, and the per-option files: shared reusable workflows (`_ci.yml`, `_cd.yml`), **one CI and one CD workflow per app** (`<prefix>-<app>-ci.yml`, `<prefix>-<app>-cd.yml`), one Terraform root module per app (`infra/apps/<app>`), one `version.json` per app, Dockerfiles. Everything generated comes from templates rendered by a script; you never hand-write generated files.
 
 Arguments: `$ARGUMENTS` may contain `--cloud`, `--compute`, `--registry`, `--runner`, `--versioning`, `--branching`, `--tracker`, `--secret-store`, `--base-image` (pre-answer an interview question), `--stack <app>=<stack>` (override a detected stack), `--yes` (accept detections and defaults without asking; requires that every needed value is present or defaulted), `--no-ticket`, `--force` (overwrite generated files).
 
@@ -30,6 +30,11 @@ Arguments: `$ARGUMENTS` may contain `--cloud`, `--compute`, `--registry`, `--run
 | `azure.location`, `azure.resource_group`, `azure.acr_name`, `azure.key_vault_name`, `azure.identity_name`, `azure.state.*` | **none** | interview |
 | `jira.site_url`, `jira.project_key` (or the equivalent block for another tracker) | **none** | interview |
 | `azure.subscription_id`, `azure.tenant_id` | omitted (env vars at runtime) | — |
+| `options.cd_trigger`, `options.pr_checks` | `manual`, `path-filtered` (both are questions in the interview; the recommended pair for a protected default branch is `on-ci-success` + `always-run-gate`) | `options.cjs --json` |
+| `pipelines.name_prefix` | `github.repo` (workflow names `<prefix>-<app>-ci` / `-cd`) | git |
+| `shared_paths` | `[]` (the shared workflow files are always inputs of every app) | interview |
+| `apps[*].paths` | .NET `ProjectReference`s outside the app path are detected automatically; other shared inputs (a root `Directory.Build.props`, a shared config folder) come from the interview | detection + interview |
+| `apps[*].version` | `0.1` (initial `version.json` version; never rewritten) | interview when migrating from an existing version |
 
 ## Step 1 — Discover the apps (explore sub-agent)
 Delegate to the `explore` sub-agent with this brief, verbatim except for the repo path:
@@ -46,9 +51,11 @@ Load the registry with `node "${CLAUDE_PLUGIN_ROOT}/scripts/options.cjs" --json`
 - Ask with `AskUserQuestion`, at most four questions per call, grouping: (a) platform options, (b) cloud identifiers and resource names, (c) apps to confirm (kind, port, health path, test command per app), (d) tracker details and environments.
 - Resource names must satisfy the schema patterns (see `templates/common/slipway/config.schema.json`): ACR 5–50 alphanumerics, Key Vault 3–24 chars starting with a letter, storage account 3–24 lowercase alphanumerics, project name lowercase kebab-case. Propose compliant names derived from the project name; the user can override.
 - Cloud subscription and tenant ids are **optional** in the file; prefer leaving them out of a public repo and relying on `ARM_SUBSCRIPTION_ID`/`AZURE_*` variables. Say so when asking.
+- Pipelines: ask `cd_trigger` (does an app deploy to `<cd_environment>` automatically after a green CI on the default branch? the human approval stays) and `pr_checks` (will the default branch require the per-app checks? then `always-run-gate`). Ask for **shared inputs**: paths outside an app that change its build (shared libraries, root build props). Detected .NET references are shown, not asked. Explain that a shared path triggers and versions every app that lists it, and that a repository-level `version.json` is replaced by one file per app.
+- `versioning=semantic-release` is selectable only for a single-app repository; with several apps say that per-app semantic-release tags are planned and offer `nbgv`.
 
 ## Step 3 — Write and validate the config
-1. Write `.slipway/config.yaml` following `templates/common/slipway/config.example.yaml` exactly in shape (`schema_version: 1`, `project`, `options`, cloud block, `github`, tracker block, `environments`, `apps`, `cursor_mirror`). Each app needs `name`, `path`, `kind`, `stack`, `image_repository` (`<project>/<app>`), and for `api`/`frontend` also `port` and `health_path`; add `upstreams` for a frontend that proxies to an API.
+1. Write `.slipway/config.yaml` following `templates/common/slipway/config.example.yaml` exactly in shape (`schema_version: 1`, `project`, `options`, cloud block, `github`, tracker block, `environments`, `pipelines`, `shared_paths`, `apps`, `cursor_mirror`). Each app needs `name`, `path`, `kind`, `stack`, `image_repository` (`<project>/<app>`), and for `api`/`frontend` also `port` and `health_path`; add `upstreams` for a frontend that proxies to an API, `paths` for shared inputs outside the app, `version` for the initial per-app version. App paths must be disjoint (one pipeline pair per app).
 2. Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/validate-config.cjs" .slipway/config.yaml`. On any error, fix the file and re-run; never proceed with an invalid file and never edit the schema or registry to make it pass.
 3. Show the user the resulting options table and app table and ask for a one-word confirmation unless `--yes`.
 
@@ -57,8 +64,10 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/scaffold.cjs" --repo . --dry-run`, show
 
 Do not edit generated files by hand afterwards. If something is wrong in a generated file, the fix belongs in the plugin's templates.
 
+**Update mode from the combined layout** (plugin < 0.13.0: `ci.yml`, `cd.yml`, `infra/app`, root `version.json`): the scaffold prints a `legacy` line and never deletes. Hand the removal and the state cutover to the human/`execute` agent as described in the plugin's `docs/PIPELINES-PER-APP.md` (import blocks for the environment and each container app, human-gated applies, then `terraform state rm` in the old module). `version.json` files that already exist keep their `version`; only `pathFilters` and `release.tagName` are refreshed.
+
 ## Step 5 — Verify (verify sub-agent)
-Delegate to the `verify` sub-agent these claims: `.slipway/config.yaml` validates (`validate-config.cjs` exit 0); `AGENTS.md`, `CLAUDE.md`, `.claude/settings.json`, `.claude/rules/precedence.md` exist and contain no `<%`; `.claude/settings.json` is valid JSON naming the marketplace and plugin; every `.claude/rules/*.md` other than `precedence.md` has a `paths:` list in its frontmatter; `.gitignore` contains `.slipway/approvals/`, `*.tfvars` and `tfplan*`. Report the verdict table to the user.
+Delegate to the `verify` sub-agent these claims: `.slipway/config.yaml` validates (`validate-config.cjs` exit 0); `AGENTS.md`, `CLAUDE.md`, `.claude/settings.json`, `.claude/rules/precedence.md` exist and contain no `<%`; for every app `.github/workflows/<prefix>-<app>-ci.yml` and `-cd.yml`, `infra/apps/<app>/main.tf` and (nbgv) `<app path>/version.json` exist, and the CI `on.push.paths` equal the `version.json` `pathFilters`; `.claude/settings.json` is valid JSON naming the marketplace and plugin; every `.claude/rules/*.md` other than `precedence.md` has a `paths:` list in its frontmatter; `.gitignore` contains `.slipway/approvals/`, `*.tfvars` and `tfplan*`. Report the verdict table to the user.
 
 ## Step 6 — Ticket
 Unless `--no-ticket`, call `/slipway:ticket create` with title `Onboard <project> to slipway delivery` and a description containing the options table, the app table and the list of generated files. Record the issue key in the summary. If the tracker MCP is not connected, say so and give the exact command to run later; do not fake a key.
@@ -71,7 +80,7 @@ Apps: <name (kind, stack, port, health)>, …
 Generated: <n> files written, <n> skipped, <n> merged  |  Pending option templates: <list or none>
 Verification: <n> confirmed / <n> refuted / <n> unverifiable
 Ticket: <KEY-123 | not created: reason>
-Next: /slipway:dockerize <first app path>
+Next: /slipway:dockerize <first app path>   (then commit, push: each app's CI runs only when its inputs changed)
 ```
 
 ## Do not

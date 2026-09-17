@@ -14,13 +14,20 @@
 |---|---|
 | `.slipway/config.yaml` | Delivery options and app inventory (source of truth for every slipway skill) |
 | `.slipway/SETUP.md`, `.slipway/setup-azure.sh` | One-time human prerequisites (checklist + idempotent script, dry run by default): GitHub secrets/variables, environment, Entra app registration with OIDC, state storage, RBAC |
-| `.slipway/evidence/` | Verification records per deployed tag |
-| `infra/foundation/` | Shared cloud resources (registry, key vault, identity, logs). Applied by a human after `/slipway:plan`; never by an agent alone |
-| `infra/app/` | Compute for the apps + image tags. Applied only by the CD workflow behind the environment approval |
-| `.github/workflows/ci.yml` | Build, test, version, push immutable image tags |
-| `.github/workflows/cd.yml` | Deploy one immutable tag to one environment (`workflow_dispatch`) |
-| `compose.yaml` | Local run of all app images as built for the cloud (frontends use `nginx.local.conf`) |
+| `.slipway/evidence/<app>/` | Verification records per app and deployed tag |
+| `infra/foundation/` | Shared cloud resources (registry, key vault, identity, logs<%#eq options.compute "aca"%>, Container Apps environment<%/eq%>). Applied by a human after `/slipway:plan`; never by an agent alone |
+<%#each derived.apps%>| `<% infra_dir %>/` | Compute + image tag of `<% name %>` only (own state). Applied only by `<% workflow_cd %>` behind the environment approval |
+<%/each%>| `.github/workflows/_ci.yml`, `_cd.yml` | Shared CI / CD stages (`workflow_call`), used by every app's thin workflows below |
+<%#each derived.apps%>| `.github/workflows/<% workflow_ci %>.yml` | CI of `<% name %>`: version from `<% version_file %>`, test, image, tag `<% tag_prefix %><semver>`. Runs only when its inputs change |
+| `.github/workflows/<% workflow_cd %>.yml` | CD of `<% name %>`: plan, human approval, apply `<% infra_dir %>`, smoke test<%#if derived.pipelines.auto_cd%>; starts automatically after a green CI on `<% github.default_branch %>`<%/if%> |
+<%/each%>| `compose.yaml` | Local run of all app images as built for the cloud (frontends use `nginx.local.conf`) |
 | `.claude/rules/` | Path-scoped rules (see Rules below) |
+
+## Pipelines (one CI and one CD per app)
+| App | CI workflow | CD workflow | Version file | Git tag | Inputs (triggers = version pathFilters) |
+|---|---|---|---|---|---|
+<%#each derived.apps%>| `<% name %>` | `<% workflow_ci %>` | `<% workflow_cd %>` | `<% version_file %>` | `<% tag_prefix %><semver>` | <%#each pipeline_paths%>`<% this %>`<%#if @last%><%else%>, <%/if%><%/each%> |
+<%/each%>A change to a path listed for one app only builds, versions and deploys that app; a path listed for several apps (shared inputs) triggers each of them. CD trigger: `<% options.cd_trigger %>`; pull-request behaviour: `<% options.pr_checks %>` (see `.claude/rules/pipelines.md`).
 
 ## Delivery options chosen
 | Dimension | Option |
@@ -35,9 +42,9 @@ Change an option with `/slipway:bootstrap`; do not edit generated files by hand 
 | Onboard or change delivery options | `/slipway:bootstrap` |
 | Build and smoke-test one app image locally | `/slipway:dockerize <app path>` |
 | Run every app image together locally | `VERSION=$(nbgv get-version -v SemVer2) docker compose up --build` (see `compose.yaml`) |
-| See what infrastructure would change | `/slipway:plan <env> --layer foundation\|app` |
-| Deploy a released tag | `/slipway:deploy <tag> <env>` |
-| Prove a deployment is correct | `/slipway:verify <env> <tag>` |
+| See what infrastructure would change | `/slipway:plan <env> --layer foundation\|apps/<app>` |
+| Deploy a released tag of one app | `/slipway:deploy <app> <tag> <env>` |
+| Prove a deployment is correct | `/slipway:verify <app> <env> <tag>` |
 | Track the work | `/slipway:ticket create\|start\|review\|done <key>` |
 | Understand the repo before changing it | ask for the `explore` sub-agent |
 | Make a scoped change with proof | ask for the `execute` sub-agent with an acceptance command |
@@ -49,7 +56,7 @@ Change an option with `/slipway:bootstrap`; do not edit generated files by hand 
 - slipway:dockerize — hardened multi-stage Dockerfile for one app, built and health-checked
 - slipway:plan — terraform fmt/validate/plan for one layer; never applies
 - slipway:deploy — trigger and monitor CD for an immutable tag
-- slipway:verify — falsifiable post-deploy checks; writes .slipway/evidence/<tag>.md
+- slipway:verify — falsifiable post-deploy checks; writes .slipway/evidence/<app>/<tag>.md
 - slipway:ticket — tracker lifecycle with structured descriptions
 - slipway:delivery-knowledge — option reference material (model-invoked)
 </available_skills>

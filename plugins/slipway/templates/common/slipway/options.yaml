@@ -56,7 +56,7 @@ dimensions:
       nbgv:             { status: implemented, label: Nerdbank.GitVersioning,
                           note: version.json + git height; dotnet/nbgv GitHub Action; needs .NET SDK on the runner }
       semantic-release: { status: implemented, label: semantic-release,
-                          note: Conventional Commits; runs on the release branch in CI; creates tag and GitHub release; Node on the runner }
+                          note: "Conventional Commits; runs on the release branch in CI; creates tag and GitHub release; Node on the runner. Single-app repositories only: per-app tags in a monorepo are planned" }
 
   branching:
     question: Which branching strategy does the repo follow?
@@ -87,6 +87,18 @@ dimensions:
       mcr-chiseled: { status: planned,     label: Microsoft chiseled Ubuntu images (.NET fallback) }
       chainguard:   { status: later,       label: Chainguard (Wolfi) }
       alpine:       { status: later,       label: Alpine (musl) }
+
+  cd_trigger:
+    question: When does an app's CD workflow start?
+    options:
+      manual:        { status: implemented, label: "Manual: /slipway:deploy <app> <tag> <env> dispatches <prefix>-<app>-cd" }
+      on-ci-success: { status: implemented, label: "Automatic: <prefix>-<app>-cd starts when <prefix>-<app>-ci succeeds on the default branch, targeting the CD environment; the environment approval gate still applies" }
+
+  pr_checks:
+    question: How does an app's CI behave on pull requests that do not touch that app?
+    options:
+      path-filtered:   { status: implemented, label: "Skip entirely (pure path filter). Do not make per-app checks required on the branch: a skipped workflow stays Pending and blocks the merge" }
+      always-run-gate: { status: implemented, label: "Always start; a first gate job lists the changed files and skips the rest when the app is untouched (a skipped job counts as passed, so the checks can be required on the branch)" }
 
   stack:
     question: Which stack is each app built with? (asked per app)

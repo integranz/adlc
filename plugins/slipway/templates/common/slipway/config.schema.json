@@ -112,6 +112,20 @@
             "chainguard",
             "alpine"
           ]
+        },
+        "cd_trigger": {
+          "enum": [
+            "manual",
+            "on-ci-success"
+          ],
+          "description": "Optional (default manual). on-ci-success: <prefix>-<app>-cd also runs on workflow_run of <prefix>-<app>-ci on the default branch."
+        },
+        "pr_checks": {
+          "enum": [
+            "path-filtered",
+            "always-run-gate"
+          ],
+          "description": "Optional (default path-filtered). always-run-gate makes per-app CI checks safe to require on the branch."
         }
       }
     },
@@ -246,6 +260,26 @@
         "type": "string",
         "pattern": "^[a-z][a-z0-9-]{1,15}$"
       }
+    },
+    "pipelines": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name_prefix": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,38}$",
+          "description": "Prefix of every workflow name: <prefix>-<app>-ci and <prefix>-<app>-cd (default: github.repo, else project.name)"
+        }
+      }
+    },
+    "shared_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))\\S+$",
+        "description": "Repository-relative path (file or directory), no leading slash, no '..'"
+      },
+      "description": "Repository-level build inputs of every app (for example a root .dockerignore or a shared Directory.Build.props). The shared workflow files are added automatically."
     },
     "apps": {
       "type": "array",
@@ -407,6 +441,20 @@
                 "default": 2
               }
             }
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))\\S+$",
+              "description": "Repository-relative path (file or directory), no leading slash, no '..'"
+            },
+            "description": "Extra build inputs of this app outside its path (shared libraries). .NET ProjectReferences outside the app path are detected and added automatically."
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$",
+            "description": "nbgv: initial 'version' written to <app path>/version.json the first time it is generated (default 0.1). Never rewritten afterwards."
           }
         },
         "allOf": [

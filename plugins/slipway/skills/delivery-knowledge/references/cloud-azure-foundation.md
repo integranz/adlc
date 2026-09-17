@@ -7,7 +7,8 @@ Verified 2026-09-14 against the azurerm provider docs (5.x, `main` branch), the 
 |---|---|---|
 | `.slipway/setup-azure.sh` (human, once) | resource group, state storage account + container, Entra app registration for CI/CD, RBAC for the CI/CD principal and the human | Chicken-and-egg (state before Terraform) and privileged operations that Terraform should not need |
 | `infra/foundation` (human applies) | Log Analytics workspace, Container Registry (Basic, admin disabled), user-assigned identity for the apps, Key Vault (RBAC mode), role assignments: identity→`AcrPull`, identity→`Key Vault Secrets User`, CI/CD principal→`AcrPush`, applier→`Key Vault Secrets Officer` | Rarely changes; contains role assignments, which the CI/CD principal must not be able to create |
-| `infra/app` (CD applies) | Container Apps environment + apps, image tags, secret references | Changes on every release |
+| `infra/apps/<app>` (that app's CD applies) | one container app, its image tag and secret references; own state | Changes on every release of that app |
+| `infra/foundation` also owns the Container Apps environment (`cae.tf`, compute `aca`) since it is shared by every app | | |
 
 ## Provider and backend facts used
 - azurerm **5.x** (5.5.0 on 2026-09-10): `rbac_authorization_enabled` is now **required** on `azurerm_key_vault`; `enable_rbac_authorization` was removed. `resource_provider_registrations` defaults to `none` in 5.0; the template sets it explicitly so the CI/CD principal never needs subscription-level registration rights (providers are registered once by an owner). `enhanced_validation` moved into `features`.
