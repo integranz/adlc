@@ -69,3 +69,11 @@ The per-app path list = app path + `paths` + `shared_paths` + the four workflow 
 4. `infra/apps/<app>`: one-off `import.tf` per app for the existing container app; the first CD run per app plans "1 to import, 0 to add"; the human approves the `dev` environment.
 5. Old state: `terraform -chdir=infra/app state rm` for the environment and both apps (or delete the blob `<project>/app/<env>.tfstate` after confirming the imports), then remove `infra/app` and the `import.tf` files.
 6. `/slipway:verify <app> dev <tag>` for each app; commit the evidence under `.slipway/evidence/<app>/`.
+
+## Cutover record (integranz/slipway-demo, 2026-09-17)
+
+- PR #4 (`chore/per-app-pipelines`): both new CIs ran fully on the PR (gate: both apps touched), Cursor review clean. Imports before the merge: `cae-adlc-demo-dev` into foundation, `api` and `web` into `infra/apps/*` (ids from `az`, the `containerapps` segment normalised to `containerApps`); plans with the current tag showed **No changes**.
+- After the merge: `slipway-demo-api-ci` and `slipway-demo-web-ci` released `0.2.1` (tags `api/v0.2.1`, `web/v0.2.1`); both CDs started from `workflow_run`, planned `0 to add, 1 to change, 0 to destroy` and waited for the `dev` approval. Web deployed and verified 17/17. The api apply succeeded but its smoke test judged the first 200, served by the previous revision (`version=0.1.24`): fixed in plugin 0.13.1 (the probe waits for `version == tag`, 240 s budget).
+- PR #5 (re-render with 0.13.1, lock files, web evidence) rebuilt both apps because `_cd.yml` is a shared input: `0.2.2` released, both CDs approved and applied, api smoke confirmed after 10 s. `verify api dev 0.2.2` 14/14, `verify web dev 0.2.2` 17/17.
+- Old combined state `adlc-demo/app/dev.tfstate`: the three resources removed with `terraform state rm`, blob deleted; `infra/app` directory removed in a follow-up PR.
+- Lesson for required checks: the reusable-workflow check names (`ci / test`, `changes`) are identical for every app; name the caller jobs after the app before requiring checks (0.13.2).

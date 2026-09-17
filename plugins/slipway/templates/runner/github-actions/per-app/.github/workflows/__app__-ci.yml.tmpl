@@ -27,7 +27,8 @@ jobs:
 <%#eq options.pr_checks "always-run-gate"%>  changes:
     # Always runs on pull requests so the checks below can be required on <% github.default_branch %>: when the PR does not touch
     # this app's inputs, `ci` is skipped, and a conditionally skipped job counts as passed for required status checks.
-    name: changes
+    # Job names carry the app name so the check names stay unique across apps (`<% app.name %> changes`, `<% app.name %> / test`).
+    name: <% app.name %> changes
     runs-on: ubuntu-latest
     outputs:
       run: ${{ steps.gate.outputs.run }}
@@ -52,11 +53,11 @@ jobs:
           PY
 
   ci:
-    name: ci
+    name: <% app.name %>
     needs: changes
     if: needs.changes.outputs.run == 'true'
 <%else%>  ci:
-    name: ci
+    name: <% app.name %>
 <%/eq%>    uses: ./.github/workflows/_ci.yml
     with:
       app: <% app.name %>

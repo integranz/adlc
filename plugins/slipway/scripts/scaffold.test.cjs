@@ -228,6 +228,7 @@ test("per-app CI workflows: thin callers with path filters, gate job, shared _ci
     // per-app callers
     const web = yaml.load(read(repo, ".github/workflows/slipway-demo-web-ci.yml"));
     assert.equal(web.name, "slipway-demo-web-ci"); assert.deepEqual(Object.keys(web.jobs), ["changes", "ci"]);
+    assert.equal(web.jobs.changes.name, "web changes"); assert.equal(web.jobs.ci.name, "web", "check names must be unique per app (web / test, web / image)");
     assert.equal(web.jobs.ci.uses, "./.github/workflows/_ci.yml"); assert.equal(web.jobs.ci.secrets, "inherit"); assert.equal(web.jobs.ci.if, "needs.changes.outputs.run == 'true'");
     assert.deepEqual(web.jobs.ci.with, { app: "web", app_path: "apps/web", context: "apps/web", dockerfile: "apps/web/Dockerfile", image_repository: "adlc-demo/web", test_command: "npm --prefix apps/web test", is_dotnet: false, is_node: true, tag_prefix: "web/v" });
     assert.equal(web.on.pull_request.paths, undefined, "gate mode: pull requests are not path-filtered");
@@ -256,7 +257,7 @@ test("per-app CD workflows: resolve + shared _cd.yml, workflow_run only with on-
   for (const s of ["az acr repository show -n acradlcdemo --image \"${{ inputs.image_repository }}:$IMAGE_TAG\"", "terraform plan -input=false -no-color -var \"image_tag=$IMAGE_TAG\" -out=tfplan", "terraform apply -input=false -no-color tfplan", "ARM_USE_OIDC", "ARM_USE_AZUREAD", "deploy-evidence-${{ inputs.app }}-${{ inputs.environment }}-${{ inputs.tag }}", "working-directory: ${{ inputs.infra_dir }}", "previous revision still serving", "expected version {tag} within 240s"]) assert.ok(cd.includes(s), `_cd.yml missing ${s}`);
   assert.doesNotMatch(cd, /-auto-approve/);
   const api = yaml.load(read(repo, ".github/workflows/slipway-demo-api-cd.yml"));
-  assert.equal(api.name, "slipway-demo-api-cd"); assert.deepEqual(Object.keys(api.jobs), ["resolve", "cd"]);
+  assert.equal(api.name, "slipway-demo-api-cd"); assert.deepEqual(Object.keys(api.jobs), ["resolve", "cd"]); assert.equal(api.jobs.cd.name, "api"); assert.equal(api.jobs.resolve.name, "api resolve");
   assert.deepEqual(api.on.workflow_run, { workflows: ["slipway-demo-api-ci"], types: ["completed"], branches: ["main"] });
   assert.deepEqual(api.on.workflow_dispatch.inputs.environment.options, ["dev"]);
   assert.equal(api.jobs.cd.uses, "./.github/workflows/_cd.yml"); assert.equal(api.jobs.cd.with.infra_dir, "infra/apps/api"); assert.equal(api.jobs.cd.with.tag, "${{ needs.resolve.outputs.tag }}");

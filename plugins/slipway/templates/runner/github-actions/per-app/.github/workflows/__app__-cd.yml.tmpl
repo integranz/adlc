@@ -35,7 +35,7 @@ permissions:
 
 jobs:
   resolve:
-    name: resolve
+    name: <% app.name %> resolve
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
@@ -64,7 +64,7 @@ jobs:
           echo "### <% app.name %> $TAG → $ENV (${{ github.event_name }})" >> "$GITHUB_STEP_SUMMARY"
 
   cd:
-    name: cd
+    name: <% app.name %>
     needs: resolve
     uses: ./.github/workflows/_cd.yml
     with:
